@@ -1,0 +1,36 @@
+﻿<Window x:Class="StartGGgraphicGenerator.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="StartGG Graphic Generator" Height="450" Width="800">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <TextBox x:Name="ApiKeyTextBox" Width="400" Margin="10" VerticalAlignment="Top"
+                 GotFocus="TextBox_GotFocus"
+                 LostFocus="TextBox_LostFocus"
+                 Tag="Enter your Start.GG API key" Foreground="Gray" Text="Enter your Start.GG API key"/>
+
+        <TextBox x:Name="UrlTextBox" Width="400" Margin="10,40,10,10" VerticalAlignment="Top"
+                 GotFocus="TextBox_GotFocus"
+                 LostFocus="TextBox_LostFocus"
+                 Tag="Enter tournament/league URL" Foreground="Gray" Text="Enter tournament/league URL"/>
+
+        <TextBox x:Name="ColorTextBox" Width="400" Margin="10,80,10,10" VerticalAlignment="Top"
+                 GotFocus="TextBox_GotFocus"
+                 LostFocus="TextBox_LostFocus"
+                 Tag="Enter color hex code" Foreground="Gray" Text="Enter color hex code"/>
+
+        <Button Content="Fetch Events" Width="100" Height="30" Margin="10,120,10,10" VerticalAlignment="Top" Click="FetchDataButton_Click"/>
+
+        <StackPanel x:Name="EventsStackPanel" Grid.Row="1" Margin="10" VerticalAlignment="Top"/>
+
+        <Button Content="Save HTML" Width="100" Height="30" Margin="10,10,10,10" VerticalAlignment="Bottom" Grid.Row="2" Click="SaveHtmlButton_Click"/>
+    </Grid>
+</Window>
