@@ -91,21 +91,47 @@ namespace StartGGgraphicGenerator
                     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("token", token);
 
                     var fileContent = Convert.ToBase64String(Encoding.UTF8.GetBytes(content));
-                    var message = new
+                    dynamic message;
+
+                    var url = $"https://api.github.com/repos/{username}/{repository}/contents/PlayerData.html";
+
+                    // Get the current SHA of the file if it exists
+                    var getFileResponse = await client.GetAsync(url);
+                    if (getFileResponse.IsSuccessStatusCode)
                     {
-                        message = "Automatic update from StartGGgraphicGenerator",
-                        committer = new
+                        var getFileContent = await getFileResponse.Content.ReadAsStringAsync();
+                        var existingFile = JsonConvert.DeserializeObject<dynamic>(getFileContent);
+                        string sha = existingFile.sha;
+
+                        message = new
                         {
-                            name = username,
-                            email = $"{username}@users.noreply.github.com"
-                        },
-                        content = fileContent
-                    };
+                            message = "Automatic update from StartGGgraphicGenerator",
+                            committer = new
+                            {
+                                name = username,
+                                email = $"{username}@users.noreply.github.com"
+                            },
+                            content = fileContent,
+                            sha = sha
+                        };
+                    }
+                    else
+                    {
+                        message = new
+                        {
+                            message = "Automatic update from StartGGgraphicGenerator",
+                            committer = new
+                            {
+                                name = username,
+                                email = $"{username}@users.noreply.github.com"
+                            },
+                            content = fileContent
+                        };
+                    }
 
                     var jsonContent = JsonConvert.SerializeObject(message);
                     var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
-                    var url = $"https://api.github.com/repos/{username}/{repository}/contents/PlayerData.html";
                     var response = await client.PutAsync(url, httpContent);
 
                     var responseContent = await response.Content.ReadAsStringAsync();
