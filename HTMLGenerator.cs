@@ -1,43 +1,41 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Media;
+using Newtonsoft.Json;
+using System.Windows;
 
 namespace StartGGgraphicGenerator
 {
     public static class HTMLGenerator
     {
-        public static void SaveHtmlToFile(List<Player> players, string selectedFont, Color selectedColor, string githubUsername, string githubRepository, string githubToken)
+        public static async void SaveHtmlToFile(List<Player> players, string selectedFont, System.Windows.Media.Color selectedColor, string githubUsername, string githubRepository, string githubToken)
         {
             try
             {
                 string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PlayerData.html");
-
                 var htmlContent = GenerateHtmlContent(players, selectedFont, selectedColor);
-
                 File.WriteAllText(filePath, htmlContent);
-
-                UploadToGitHub(filePath, githubUsername, githubRepository, githubToken);
-
-                System.Windows.MessageBox.Show($"Player data saved to {filePath}");
+                MessageBox.Show($"Player data saved to {filePath}");
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = filePath,
                     UseShellExecute = true
                 });
+
+                // Push to GitHub
+                await PushToGitHub(htmlContent, githubUsername, githubRepository, githubToken);
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"An error occurred: {ex.Message}");
+                MessageBox.Show($"An error occurred: {ex.Message}");
             }
         }
 
-        private static string GenerateHtmlContent(List<Player> players, string selectedFont, Color selectedColor)
+        private static string GenerateHtmlContent(List<Player> players, string selectedFont, System.Windows.Media.Color selectedColor)
         {
             string colorHex = $"#{selectedColor.R:X2}{selectedColor.G:X2}{selectedColor.B:X2}";
             string html = $@"
@@ -82,30 +80,47 @@ namespace StartGGgraphicGenerator
             return html;
         }
 
-        private static async void UploadToGitHub(string filePath, string username, string repository, string token)
+        private static async Task PushToGitHub(string content, string username, string repository, string token)
         {
             try
             {
-                string url = $"https://api.github.com/repos/{username}/{repository}/contents/{Path.GetFileName(filePath)}";
-                var client = new HttpClient();
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                client.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue("Mozilla", "5.0"));
-
-                var content = new
+                using (var client = new HttpClient())
                 {
-                    message = "Upload Player Data",
-                    content = Convert.ToBase64String(File.ReadAllBytes(filePath))
-                };
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd("request");
+                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("token", token);
 
-                var jsonContent = JsonConvert.SerializeObject(content);
-                var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+                    var fileContent = Convert.ToBase64String(Encoding.UTF8.GetBytes(content));
+                    var message = new
+                    {
+                        message = "Automatic update from StartGGgraphicGenerator",
+                        committer = new
+                        {
+                            name = username,
+                            email = $"{username}@users.noreply.github.com"
+                        },
+                        content = fileContent
+                    };
 
-                var response = await client.PutAsync(url, httpContent);
-                response.EnsureSuccessStatusCode();
+                    var jsonContent = JsonConvert.SerializeObject(message);
+                    var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+                    var url = $"https://api.github.com/repos/{username}/{repository}/contents/PlayerData.html";
+                    var response = await client.PutAsync(url, httpContent);
+
+                    var responseContent = await response.Content.ReadAsStringAsync();
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        throw new Exception($"Failed to push to GitHub: {response.StatusCode} - {responseContent}");
+                    }
+
+                    MessageBox.Show("Pushed to GitHub successfully!");
+                }
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show($"An error occurred while uploading to GitHub: {ex.Message}");
+                MessageBox.Show($"An error occurred while pushing to GitHub: {ex.Message}");
             }
         }
     }

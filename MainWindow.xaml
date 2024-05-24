@@ -1,58 +1,56 @@
 ﻿<Window x:Class="StartGGgraphicGenerator.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="StartGG Graphic Generator" Height="450" Width="800">
-    <Grid>
+        Title="StartGG Graphic Generator" Height="600" Width="800">
+    <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
 
-        <StackPanel Orientation="Vertical" HorizontalAlignment="Left" Margin="10">
-            <TextBlock Text="Start.GG Graphic Generator" FontSize="16" FontWeight="Bold"/>
-            <TextBlock Text="Version 0.2.1" FontSize="12"/>
-            <TextBlock Text="Created by CadeXR" FontSize="12"/>
-        </StackPanel>
+        <TextBlock Text="Start.GG Graphic Generator" FontWeight="Bold" FontSize="16"/>
+        <TextBlock Text="Version 0.1.2" Grid.Row="1"/>
+        <TextBlock Text="Created by CadeXR" Grid.Row="2" Margin="0,0,0,10"/>
 
-        <TextBox x:Name="ApiKeyTextBox" Width="400" Margin="10,60,10,10" VerticalAlignment="Top"
-                 GotFocus="TextBox_GotFocus"
-                 LostFocus="TextBox_LostFocus"
-                 Tag="Enter your Start.GG API key" Foreground="Gray" Text="Enter your Start.GG API key"/>
+        <TextBlock Text="Start.GG API Key:" Grid.Row="3"/>
+        <TextBox x:Name="ApiKeyTextBox" Grid.Row="3" Width="400" Margin="10,0,0,10"/>
 
-        <TextBox x:Name="UrlTextBox" Width="400" Margin="10,100,10,10" VerticalAlignment="Top"
-                 GotFocus="TextBox_GotFocus"
-                 LostFocus="TextBox_LostFocus"
-                 Tag="Enter tournament/league URL" Foreground="Gray" Text="Enter tournament/league URL"/>
+        <TextBlock Text="Tournament URL:" Grid.Row="4"/>
+        <TextBox x:Name="UrlTextBox" Grid.Row="4" Width="400" Margin="10,0,0,10"/>
+        <Button x:Name="FetchDataButton" Content="Fetch Events" Grid.Row="4" Margin="420,0,0,10" Click="FetchDataButton_Click"/>
 
-        <ComboBox x:Name="ColorComboBox" Width="400" Margin="10,140,10,10" VerticalAlignment="Top" SelectionChanged="ColorComboBox_SelectionChanged">
-            <ComboBoxItem Content="Red" Foreground="Red"/>
-            <ComboBoxItem Content="Green" Foreground="Green"/>
-            <ComboBoxItem Content="Blue" Foreground="Blue"/>
-            <ComboBoxItem Content="Purple" Foreground="Purple"/>
-            <ComboBoxItem Content="Orange" Foreground="Orange"/>
-            <ComboBoxItem Content="Yellow" Foreground="Yellow"/>
+        <TextBlock Text="GitHub Username:" Grid.Row="5"/>
+        <TextBox x:Name="GitHubUsernameTextBox" Grid.Row="5" Width="400" Margin="10,0,0,10"/>
+        <TextBlock Text="GitHub Repository:" Grid.Row="6"/>
+        <TextBox x:Name="GitHubRepositoryTextBox" Grid.Row="6" Width="400" Margin="10,0,0,10"/>
+        <TextBlock Text="GitHub Token:" Grid.Row="7"/>
+        <PasswordBox x:Name="GitHubTokenBox" Grid.Row="7" Width="400" Margin="10,0,0,10" PasswordChanged="PasswordBox_PasswordChanged"/>
+
+        <TextBlock Text="Select Color:" Grid.Row="8"/>
+        <ComboBox x:Name="ColorPickerComboBox" Grid.Row="8" Width="400" Margin="10,0,0,10" SelectionChanged="ColorPickerComboBox_SelectionChanged">
+            <ComboBoxItem Content="Blue" Tag="Blue"/>
+            <ComboBoxItem Content="Red" Tag="Red"/>
+            <ComboBoxItem Content="Green" Tag="Green"/>
+            <ComboBoxItem Content="Yellow" Tag="Yellow"/>
+            <ComboBoxItem Content="Purple" Tag="Purple"/>
+            <ComboBoxItem Content="Orange" Tag="Orange"/>
         </ComboBox>
 
-        <TextBox x:Name="GitHubUsernameTextBox" Width="400" Margin="10,180,10,10" VerticalAlignment="Top"
-                 GotFocus="TextBox_GotFocus"
-                 LostFocus="TextBox_LostFocus"
-                 Tag="Enter your GitHub Username" Foreground="Gray" Text="Enter your GitHub Username"/>
+        <TextBlock Text="Log:" Grid.Row="9"/>
+        <TextBox x:Name="LogTextBox" Grid.Row="9" Margin="10,0,0,10" Width="760" Height="100" IsReadOnly="True" VerticalScrollBarVisibility="Auto"/>
 
-        <TextBox x:Name="GitHubRepositoryTextBox" Width="400" Margin="10,220,10,10" VerticalAlignment="Top"
-                 GotFocus="TextBox_GotFocus"
-                 LostFocus="TextBox_LostFocus"
-                 Tag="Enter your GitHub Repository" Foreground="Gray" Text="Enter your GitHub Repository"/>
-
-        <PasswordBox x:Name="GitHubTokenBox" Width="400" Margin="10,260,10,10" VerticalAlignment="Top"
-                     PasswordChanged="PasswordBox_PasswordChanged" 
-                     Tag="Enter your GitHub Token" Foreground="Gray"/>
-
-        <Button Content="Fetch Events" Width="100" Height="30" Margin="10,300,10,10" VerticalAlignment="Top" Click="FetchDataButton_Click"/>
-
-        <StackPanel x:Name="EventsStackPanel" Grid.Row="1" Margin="10" VerticalAlignment="Top"/>
+        <TextBlock Text="Events:" Grid.Row="10"/>
+        <ScrollViewer Grid.Row="11" VerticalScrollBarVisibility="Auto" Height="200">
+            <StackPanel x:Name="EventsStackPanel" Margin="10"/>
+        </ScrollViewer>
     </Grid>
 </Window>

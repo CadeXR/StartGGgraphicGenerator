@@ -10,7 +10,6 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using Newtonsoft.Json;
 using System.Diagnostics;
-using System.Numerics;
 
 namespace StartGGgraphicGenerator
 {
@@ -33,28 +32,9 @@ namespace StartGGgraphicGenerator
             LoadGitHubSettings();
         }
 
-        private void ColorComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (ColorComboBox.SelectedItem != null)
-            {
-                var selectedItem = ColorComboBox.SelectedItem as ComboBoxItem;
-                if (selectedItem != null)
-                {
-                    selectedColor = (Color)ColorConverter.ConvertFromString(selectedItem.Content.ToString());
-                }
-            }
-        }
-
         private async void FetchDataButton_Click(object sender, RoutedEventArgs e)
         {
             apiToken = ApiKeyTextBox.Text;
-            githubUsername = GitHubUsernameTextBox.Text;
-            githubRepository = GitHubRepositoryTextBox.Text;
-            githubToken = GitHubTokenBox.Password;
-
-            SaveApiKey();
-            SaveGitHubSettings();
-
             string url = UrlTextBox.Text;
             string slug = ExtractSlugFromUrl(url);
 
@@ -70,7 +50,7 @@ namespace StartGGgraphicGenerator
                 else
                 {
                     Log("No events found.");
-                    MessageBox.Show("No events found for this tournament.");
+                    System.Windows.MessageBox.Show("No events found for this tournament.");
                 }
             }
             else
@@ -105,13 +85,17 @@ namespace StartGGgraphicGenerator
                 players = await FetchPlayersFromEvent(eventId);
                 if (players.Count > 0)
                 {
-                    HTMLGenerator.SaveHtmlToFile(players, selectedFont, selectedColor, githubUsername, githubRepository, githubToken);
-                    Log("HTML file saved successfully.");
+                    Log("Generating HTML file...");
+                    await Task.Run(() =>
+                    {
+                        HTMLGenerator.SaveHtmlToFile(players, selectedFont, selectedColor, githubUsername, githubRepository, githubToken);
+                    });
+                    Log("HTML file saved and pushed to GitHub successfully.");
                 }
                 else
                 {
                     Log("No players found for this event.");
-                    MessageBox.Show("No players found for this event.");
+                    System.Windows.MessageBox.Show("No players found for this event.");
                 }
             }
         }
@@ -163,7 +147,7 @@ namespace StartGGgraphicGenerator
                 else
                 {
                     Log("No events found for this tournament.");
-                    MessageBox.Show("No events found for this tournament.");
+                    System.Windows.MessageBox.Show("No events found for this tournament.");
                 }
             }
         }
@@ -237,13 +221,12 @@ namespace StartGGgraphicGenerator
         {
             if (File.Exists("githubSettings.txt"))
             {
-                var settings = File.ReadAllLines("githubSettings.txt");
-                if (settings.Length >= 3)
+                var lines = File.ReadAllLines("githubSettings.txt");
+                if (lines.Length >= 3)
                 {
-                    githubUsername = settings[0];
-                    githubRepository = settings[1];
-                    githubToken = settings[2];
-
+                    githubUsername = lines[0];
+                    githubRepository = lines[1];
+                    githubToken = lines[2];
                     GitHubUsernameTextBox.Text = githubUsername;
                     GitHubRepositoryTextBox.Text = githubRepository;
                     GitHubTokenBox.Password = githubToken;
@@ -253,23 +236,14 @@ namespace StartGGgraphicGenerator
 
         private void SaveGitHubSettings()
         {
-            var settings = new string[] { githubUsername, githubRepository, githubToken };
-            File.WriteAllLines("githubSettings.txt", settings);
-        }
-
-        private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
-        {
-            var passwordBox = sender as PasswordBox;
-            if (passwordBox != null)
-            {
-                githubToken = passwordBox.Password;
-            }
+            var lines = new string[] { githubUsername, githubRepository, githubToken };
+            File.WriteAllLines("githubSettings.txt", lines);
         }
 
         private void TextBox_GotFocus(object sender, RoutedEventArgs e)
         {
             var textBox = sender as TextBox;
-            if (textBox != null && (textBox.Text == textBox.Tag.ToString()))
+            if (textBox != null && textBox.Text == textBox.Tag.ToString())
             {
                 textBox.Text = "";
                 textBox.Foreground = new SolidColorBrush(Colors.Black);
@@ -286,9 +260,48 @@ namespace StartGGgraphicGenerator
             }
         }
 
+        private void PasswordBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            var passwordBox = sender as PasswordBox;
+            if (passwordBox != null && passwordBox.Password == passwordBox.Tag.ToString())
+            {
+                passwordBox.Password = "";
+                passwordBox.Foreground = new SolidColorBrush(Colors.Black);
+            }
+        }
+
+        private void PasswordBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            var passwordBox = sender as PasswordBox;
+            if (passwordBox != null && string.IsNullOrWhiteSpace(passwordBox.Password))
+            {
+                passwordBox.Password = passwordBox.Tag.ToString();
+                passwordBox.Foreground = new SolidColorBrush(Colors.Gray);
+            }
+        }
+
+        private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+        {
+            var passwordBox = sender as PasswordBox;
+            if (passwordBox != null)
+            {
+                githubToken = passwordBox.Password;
+            }
+        }
+
+        private void ColorPickerComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ColorPickerComboBox.SelectedItem != null)
+            {
+                var selectedColorString = (ColorPickerComboBox.SelectedItem as ComboBoxItem).Tag.ToString();
+                selectedColor = (Color)ColorConverter.ConvertFromString(selectedColorString);
+            }
+        }
+
         private void Log(string message)
         {
-            Debug.WriteLine(message);
+            LogTextBox.AppendText(message + Environment.NewLine);
+            LogTextBox.ScrollToEnd();
         }
     }
 
@@ -313,7 +326,8 @@ namespace StartGGgraphicGenerator
     {
         public string Id { get; set; }
         public string Name { get; set; }
-        public Standings Standings { get; set; }
+        public Standings Standings
+        { get; set; }
     }
 
     public class Standings
@@ -329,7 +343,6 @@ namespace StartGGgraphicGenerator
 
     public class Entrant
     {
-        public string Id { get; set; }
         public string Name { get; set; }
     }
 
