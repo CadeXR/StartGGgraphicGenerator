@@ -10,7 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using Newtonsoft.Json;
 using System.Diagnostics;
-using Xceed.Wpf.Toolkit;
+using System.Numerics;
 
 namespace StartGGgraphicGenerator
 {
@@ -22,25 +22,39 @@ namespace StartGGgraphicGenerator
         private static List<Event> events = new List<Event>();
         private System.Windows.Media.Color selectedColor = System.Windows.Media.Colors.Blue;
         private string selectedFont = "Arial";
+        private string githubUsername;
+        private string githubRepository;
+        private string githubToken;
 
         public MainWindow()
         {
             InitializeComponent();
-            LoadInstalledFonts();
             LoadApiKey();
+            LoadGitHubSettings();
         }
 
-        private void LoadInstalledFonts()
+        private void ColorComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            foreach (FontFamily font in Fonts.SystemFontFamilies)
+            if (ColorComboBox.SelectedItem != null)
             {
-                // Populate font options here if needed
+                var selectedItem = ColorComboBox.SelectedItem as ComboBoxItem;
+                if (selectedItem != null)
+                {
+                    selectedColor = (Color)ColorConverter.ConvertFromString(selectedItem.Content.ToString());
+                }
             }
         }
 
         private async void FetchDataButton_Click(object sender, RoutedEventArgs e)
         {
             apiToken = ApiKeyTextBox.Text;
+            githubUsername = GitHubUsernameTextBox.Text;
+            githubRepository = GitHubRepositoryTextBox.Text;
+            githubToken = GitHubTokenBox.Password;
+
+            SaveApiKey();
+            SaveGitHubSettings();
+
             string url = UrlTextBox.Text;
             string slug = ExtractSlugFromUrl(url);
 
@@ -56,13 +70,12 @@ namespace StartGGgraphicGenerator
                 else
                 {
                     Log("No events found.");
-                    System.Windows.MessageBox.Show("No events found for this tournament.");
+                    MessageBox.Show("No events found for this tournament.");
                 }
             }
             else
             {
                 Log("Invalid URL entered.");
-                System.Windows.MessageBox.Show("Invalid URL entered.");
             }
         }
 
@@ -92,14 +105,13 @@ namespace StartGGgraphicGenerator
                 players = await FetchPlayersFromEvent(eventId);
                 if (players.Count > 0)
                 {
-                    string colorHex = $"#{selectedColor.R:X2}{selectedColor.G:X2}{selectedColor.B:X2}";
-                    HTMLGenerator.SaveHtmlToFile(players, selectedFont, colorHex);
+                    HTMLGenerator.SaveHtmlToFile(players, selectedFont, selectedColor, githubUsername, githubRepository, githubToken);
                     Log("HTML file saved successfully.");
                 }
                 else
                 {
                     Log("No players found for this event.");
-                    System.Windows.MessageBox.Show("No players found for this event.");
+                    MessageBox.Show("No players found for this event.");
                 }
             }
         }
@@ -151,7 +163,7 @@ namespace StartGGgraphicGenerator
                 else
                 {
                     Log("No events found for this tournament.");
-                    System.Windows.MessageBox.Show("No events found for this tournament.");
+                    MessageBox.Show("No events found for this tournament.");
                 }
             }
         }
@@ -207,19 +219,6 @@ namespace StartGGgraphicGenerator
             }
         }
 
-        private void ColorPicker_SelectedColorChanged(object sender, RoutedPropertyChangedEventArgs<System.Windows.Media.Color?> e)
-        {
-            if (e.NewValue.HasValue)
-            {
-                selectedColor = e.NewValue.Value;
-            }
-        }
-
-        private void Log(string message)
-        {
-            Debug.WriteLine(message);
-        }
-
         private void LoadApiKey()
         {
             if (File.Exists("apiKey.txt"))
@@ -232,6 +231,39 @@ namespace StartGGgraphicGenerator
         private void SaveApiKey()
         {
             File.WriteAllText("apiKey.txt", apiToken);
+        }
+
+        private void LoadGitHubSettings()
+        {
+            if (File.Exists("githubSettings.txt"))
+            {
+                var settings = File.ReadAllLines("githubSettings.txt");
+                if (settings.Length >= 3)
+                {
+                    githubUsername = settings[0];
+                    githubRepository = settings[1];
+                    githubToken = settings[2];
+
+                    GitHubUsernameTextBox.Text = githubUsername;
+                    GitHubRepositoryTextBox.Text = githubRepository;
+                    GitHubTokenBox.Password = githubToken;
+                }
+            }
+        }
+
+        private void SaveGitHubSettings()
+        {
+            var settings = new string[] { githubUsername, githubRepository, githubToken };
+            File.WriteAllLines("githubSettings.txt", settings);
+        }
+
+        private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+        {
+            var passwordBox = sender as PasswordBox;
+            if (passwordBox != null)
+            {
+                githubToken = passwordBox.Password;
+            }
         }
 
         private void TextBox_GotFocus(object sender, RoutedEventArgs e)
@@ -252,6 +284,11 @@ namespace StartGGgraphicGenerator
                 textBox.Text = textBox.Tag.ToString();
                 textBox.Foreground = new SolidColorBrush(Colors.Gray);
             }
+        }
+
+        private void Log(string message)
+        {
+            Debug.WriteLine(message);
         }
     }
 
