@@ -10,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using Newtonsoft.Json;
 using System.Diagnostics;
+using Xceed.Wpf.Toolkit;
 
 namespace StartGGgraphicGenerator
 {
@@ -19,13 +20,22 @@ namespace StartGGgraphicGenerator
         private static string apiToken = "";
         private static List<Player> players = new List<Player>();
         private static List<Event> events = new List<Event>();
-        private string selectedColor = "#0000FF";
+        private System.Windows.Media.Color selectedColor = System.Windows.Media.Colors.Blue;
         private string selectedFont = "Arial";
 
         public MainWindow()
         {
             InitializeComponent();
+            LoadInstalledFonts();
             LoadApiKey();
+        }
+
+        private void LoadInstalledFonts()
+        {
+            foreach (FontFamily font in Fonts.SystemFontFamilies)
+            {
+                // Populate font options here if needed
+            }
         }
 
         private async void FetchDataButton_Click(object sender, RoutedEventArgs e)
@@ -33,7 +43,6 @@ namespace StartGGgraphicGenerator
             apiToken = ApiKeyTextBox.Text;
             string url = UrlTextBox.Text;
             string slug = ExtractSlugFromUrl(url);
-            selectedColor = ColorTextBox.Text;
 
             if (!string.IsNullOrEmpty(slug))
             {
@@ -47,12 +56,13 @@ namespace StartGGgraphicGenerator
                 else
                 {
                     Log("No events found.");
-                    MessageBox.Show("No events found for this tournament.");
+                    System.Windows.MessageBox.Show("No events found for this tournament.");
                 }
             }
             else
             {
                 Log("Invalid URL entered.");
+                System.Windows.MessageBox.Show("Invalid URL entered.");
             }
         }
 
@@ -82,13 +92,14 @@ namespace StartGGgraphicGenerator
                 players = await FetchPlayersFromEvent(eventId);
                 if (players.Count > 0)
                 {
-                    HTMLGenerator.SaveHtmlToFile(players, selectedFont, selectedColor);
+                    string colorHex = $"#{selectedColor.R:X2}{selectedColor.G:X2}{selectedColor.B:X2}";
+                    HTMLGenerator.SaveHtmlToFile(players, selectedFont, colorHex);
                     Log("HTML file saved successfully.");
                 }
                 else
                 {
                     Log("No players found for this event.");
-                    MessageBox.Show("No players found for this event.");
+                    System.Windows.MessageBox.Show("No players found for this event.");
                 }
             }
         }
@@ -140,7 +151,7 @@ namespace StartGGgraphicGenerator
                 else
                 {
                     Log("No events found for this tournament.");
-                    MessageBox.Show("No events found for this tournament.");
+                    System.Windows.MessageBox.Show("No events found for this tournament.");
                 }
             }
         }
@@ -196,16 +207,11 @@ namespace StartGGgraphicGenerator
             }
         }
 
-        private void SaveHtmlButton_Click(object sender, RoutedEventArgs e)
+        private void ColorPicker_SelectedColorChanged(object sender, RoutedPropertyChangedEventArgs<System.Windows.Media.Color?> e)
         {
-            try
+            if (e.NewValue.HasValue)
             {
-                HTMLGenerator.SaveHtmlToFile(players, selectedFont, selectedColor);
-                Log("HTML file saved successfully.");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"An error occurred while saving the HTML file: {ex.Message}");
+                selectedColor = e.NewValue.Value;
             }
         }
 
@@ -262,13 +268,8 @@ namespace StartGGgraphicGenerator
 
     public class Data
     {
-        public Tournament Tournament { get; set; }
         public Event Event { get; set; }
-    }
-
-    public class Tournament
-    {
-        public List<Event> Events { get; set; }
+        public Tournament Tournament { get; set; }
     }
 
     public class Event
@@ -294,5 +295,9 @@ namespace StartGGgraphicGenerator
         public string Id { get; set; }
         public string Name { get; set; }
     }
-}
 
+    public class Tournament
+    {
+        public List<Event> Events { get; set; }
+    }
+}
