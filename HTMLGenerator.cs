@@ -26,8 +26,8 @@ namespace StartGGgraphicGenerator
                     UseShellExecute = true
                 });
 
-                // Push to GitHub
-                await PushToGitHub(htmlContent, githubUsername, githubRepository, githubToken);
+                // Upload to GitHub
+                await UploadToGitHub(htmlContent, githubUsername, githubRepository, githubToken);
             }
             catch (Exception ex)
             {
@@ -80,7 +80,7 @@ namespace StartGGgraphicGenerator
             return html;
         }
 
-        private static async Task PushToGitHub(string content, string username, string repository, string token)
+        private static async Task UploadToGitHub(string content, string username, string repository, string token)
         {
             try
             {
@@ -91,43 +91,39 @@ namespace StartGGgraphicGenerator
                     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("token", token);
 
                     var fileContent = Convert.ToBase64String(Encoding.UTF8.GetBytes(content));
-                    dynamic message;
-
                     var url = $"https://api.github.com/repos/{username}/{repository}/contents/PlayerData.html";
 
-                    // Get the current SHA of the file if it exists
+                    // Logging URL and parameters for debugging
+                    Console.WriteLine($"URL: {url}");
+                    Console.WriteLine($"Username: {username}");
+                    Console.WriteLine($"Repository: {repository}");
+
                     var getFileResponse = await client.GetAsync(url);
+                    string sha = null;
+
                     if (getFileResponse.IsSuccessStatusCode)
                     {
                         var getFileContent = await getFileResponse.Content.ReadAsStringAsync();
                         var existingFile = JsonConvert.DeserializeObject<dynamic>(getFileContent);
-                        string sha = existingFile.sha;
-
-                        message = new
-                        {
-                            message = "Automatic update from StartGGgraphicGenerator",
-                            committer = new
-                            {
-                                name = username,
-                                email = $"{username}@users.noreply.github.com"
-                            },
-                            content = fileContent,
-                            sha = sha
-                        };
+                        sha = existingFile.sha;
+                        Console.WriteLine($"Existing file sha: {sha}");
                     }
                     else
                     {
-                        message = new
-                        {
-                            message = "Automatic update from StartGGgraphicGenerator",
-                            committer = new
-                            {
-                                name = username,
-                                email = $"{username}@users.noreply.github.com"
-                            },
-                            content = fileContent
-                        };
+                        Console.WriteLine("File does not exist, proceeding to create new file.");
                     }
+
+                    var message = new
+                    {
+                        message = "Automatic update from StartGGgraphicGenerator",
+                        committer = new
+                        {
+                            name = username,
+                            email = $"{username}@users.noreply.github.com"
+                        },
+                        content = fileContent,
+                        sha = sha
+                    };
 
                     var jsonContent = JsonConvert.SerializeObject(message);
                     var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
@@ -138,15 +134,16 @@ namespace StartGGgraphicGenerator
 
                     if (!response.IsSuccessStatusCode)
                     {
-                        throw new Exception($"Failed to push to GitHub: {response.StatusCode} - {responseContent}");
+                        throw new Exception($"Failed to upload to GitHub: {response.StatusCode} - {responseContent}");
                     }
 
-                    MessageBox.Show("Pushed to GitHub successfully!");
+                    MessageBox.Show("Uploaded to GitHub successfully!");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"An error occurred while pushing to GitHub: {ex.Message}");
+                // Improved error logging
+                MessageBox.Show($"An error occurred while uploading to GitHub: {ex.Message}\n{ex.StackTrace}");
             }
         }
     }

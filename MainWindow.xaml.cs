@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
 using Newtonsoft.Json;
-using System.Diagnostics;
 
 namespace StartGGgraphicGenerator
 {
@@ -28,8 +27,7 @@ namespace StartGGgraphicGenerator
         public MainWindow()
         {
             InitializeComponent();
-            LoadApiKey();
-            LoadGitHubSettings();
+            LoadSettings();
         }
 
         private async void FetchDataButton_Click(object sender, RoutedEventArgs e)
@@ -50,7 +48,7 @@ namespace StartGGgraphicGenerator
                 else
                 {
                     Log("No events found.");
-                    System.Windows.MessageBox.Show("No events found for this tournament.");
+                    MessageBox.Show("No events found for this tournament.");
                 }
             }
             else
@@ -95,7 +93,7 @@ namespace StartGGgraphicGenerator
                 else
                 {
                     Log("No players found for this event.");
-                    System.Windows.MessageBox.Show("No players found for this event.");
+                    MessageBox.Show("No players found for this event.");
                 }
             }
         }
@@ -147,7 +145,7 @@ namespace StartGGgraphicGenerator
                 else
                 {
                     Log("No events found for this tournament.");
-                    System.Windows.MessageBox.Show("No events found for this tournament.");
+                    MessageBox.Show("No events found for this tournament.");
                 }
             }
         }
@@ -203,41 +201,33 @@ namespace StartGGgraphicGenerator
             }
         }
 
-        private void LoadApiKey()
+        private void LoadSettings()
         {
-            if (File.Exists("apiKey.txt"))
+            if (File.Exists("settings.txt"))
             {
-                apiToken = File.ReadAllText("apiKey.txt");
-                ApiKeyTextBox.Text = apiToken;
-            }
-        }
-
-        private void SaveApiKey()
-        {
-            File.WriteAllText("apiKey.txt", apiToken);
-        }
-
-        private void LoadGitHubSettings()
-        {
-            if (File.Exists("githubSettings.txt"))
-            {
-                var lines = File.ReadAllLines("githubSettings.txt");
-                if (lines.Length >= 3)
+                var lines = File.ReadAllLines("settings.txt");
+                if (lines.Length >= 4)
                 {
-                    githubUsername = lines[0];
-                    githubRepository = lines[1];
-                    githubToken = lines[2];
-                    GitHubUsernameTextBox.Text = githubUsername;
-                    GitHubRepositoryTextBox.Text = githubRepository;
-                    GitHubTokenBox.Password = githubToken;
+                    ApiKeyTextBox.Text = lines[0];
+                    UrlTextBox.Text = lines[1];
+                    GitHubUsernameTextBox.Text = lines[2];
+                    GitHubRepositoryTextBox.Text = lines[3];
+                    GitHubTokenBox.Password = lines[4];
                 }
             }
         }
 
-        private void SaveGitHubSettings()
+        private void SaveSettings()
         {
-            var lines = new string[] { githubUsername, githubRepository, githubToken };
-            File.WriteAllLines("githubSettings.txt", lines);
+            var lines = new string[]
+            {
+                ApiKeyTextBox.Text,
+                UrlTextBox.Text,
+                GitHubUsernameTextBox.Text,
+                GitHubRepositoryTextBox.Text,
+                GitHubTokenBox.Password
+            };
+            File.WriteAllLines("settings.txt", lines);
         }
 
         private void TextBox_GotFocus(object sender, RoutedEventArgs e)
@@ -303,6 +293,12 @@ namespace StartGGgraphicGenerator
             LogTextBox.AppendText(message + Environment.NewLine);
             LogTextBox.ScrollToEnd();
         }
+
+        private void SaveButton_Click(object sender, RoutedEventArgs e)
+        {
+            SaveSettings();
+            MessageBox.Show("Settings saved successfully.");
+        }
     }
 
     public class Player
@@ -326,8 +322,7 @@ namespace StartGGgraphicGenerator
     {
         public string Id { get; set; }
         public string Name { get; set; }
-        public Standings Standings
-        { get; set; }
+        public Standings Standings { get; set; }
     }
 
     public class Standings
