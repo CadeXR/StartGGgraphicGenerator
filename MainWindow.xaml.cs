@@ -23,6 +23,7 @@ namespace StartGGgraphicGenerator
         private string selectedFont = "Arial";
         private string netlifySiteId;
         private string netlifyAccessToken;
+        private static readonly string logFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "application.log");
 
         public MainWindow()
         {
@@ -44,16 +45,24 @@ namespace StartGGgraphicGenerator
             if (!string.IsNullOrEmpty(slug))
             {
                 Log("Fetching events from tournament...");
-                await FetchEventsFromTournament(slug);
-                if (events.Count > 0)
+                try
                 {
-                    Log($"Events fetched successfully. Found {events.Count} events.");
-                    GenerateEventButtons();
+                    await FetchEventsFromTournament(slug);
+                    if (events.Count > 0)
+                    {
+                        Log($"Events fetched successfully. Found {events.Count} events.");
+                        GenerateEventButtons();
+                    }
+                    else
+                    {
+                        Log("No events found.");
+                        MessageBox.Show("No events found for this tournament.");
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    Log("No events found.");
-                    MessageBox.Show("No events found for this tournament.");
+                    Log($"Error fetching events: {ex.Message}");
+                    MessageBox.Show($"Error fetching events: {ex.Message}");
                 }
             }
             else
@@ -85,37 +94,49 @@ namespace StartGGgraphicGenerator
             {
                 string eventId = button.Tag.ToString();
                 Log($"Fetching players from event: {button.Content}");
-                players = await FetchPlayersFromEvent(eventId);
-                if (players.Count > 0)
+                try
                 {
-                    Log("Generating HTML file...");
-                    var htmlContent = HTMLGenerator.GenerateHtmlContent(players, selectedFont, selectedColor);
-
-                    // Save HTML file locally
-                    var sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PlayerData.html");
-                    File.WriteAllText(sourceFilePath, htmlContent);
-
-                    // Define the deploy directory
-                    var deployDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "deploy");
-
-                    Log("Deploying HTML file to Netlify...");
-                    try
+                    players = await FetchPlayersFromEvent(eventId);
+                    if (players.Count > 0)
                     {
-                        NetlifyDeployer.Deploy(sourceFilePath, deployDirectory);
-                        Log("HTML file deployed successfully.");
+                        Log("Generating HTML file...");
+                        var htmlContent = HTMLGenerator.GenerateHtmlContent(players, selectedFont, selectedColor);
+
+                        // Save HTML file locally
+                        var sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PlayerData.html");
+                        File.WriteAllText(sourceFilePath, htmlContent);
+
+                        // Define the deploy directory
+                        var deployDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "deploy");
+
+                        Log("Deploying HTML file to Netlify...");
+                        try
+                        {
+                            string siteId = NetlifySiteIdTextBox.Text; // Get the site ID from the TextBox
+                            await Task.Run(() => NetlifyDeployer.Deploy(sourceFilePath, deployDirectory, siteId));
+                            Log("HTML file deployed successfully.");
+                        }
+                        catch (Exception ex)
+                        {
+                            Log($"Deployment failed: {ex.Message}");
+                            MessageBox.Show($"Deployment failed: {ex.Message}");
+                        }
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Log($"Deployment failed: {ex.Message}");
+                        Log("No players found for this event.");
+                        MessageBox.Show("No players found for this event.");
                     }
                 }
-                else
+                catch (Exception ex)
                 {
-                    Log("No players found for this event.");
-                    MessageBox.Show("No players found for this event.");
+                    Log($"Error fetching players: {ex.Message}");
+                    MessageBox.Show($"Error fetching players: {ex.Message}");
                 }
             }
         }
+
+
 
         private static string ExtractSlugFromUrl(string url)
         {
@@ -307,8 +328,21 @@ namespace StartGGgraphicGenerator
 
         private void Log(string message)
         {
+            LogToFile(message);
             LogTextBox.AppendText(message + Environment.NewLine);
             LogTextBox.ScrollToEnd();
+        }
+
+        private static void LogToFile(string message)
+        {
+            try
+            {
+                File.AppendAllText(logFilePath, $"{DateTime.Now}: {message}{Environment.NewLine}");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to write to log file: {ex.Message}");
+            }
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
