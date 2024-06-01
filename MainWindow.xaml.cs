@@ -8,8 +8,8 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using Newtonsoft.Json;
+using System.Windows.Media.Imaging;
 
 namespace StartGGgraphicGenerator
 {
@@ -243,8 +243,10 @@ namespace StartGGgraphicGenerator
                     {
                         league(slug: """ + slug + @""") {
                             events {
-                                id
-                                name
+                                nodes {
+                                    id
+                                    name
+                                }
                             }
                         }
                     }"
@@ -259,9 +261,9 @@ namespace StartGGgraphicGenerator
                 var result = await response.Content.ReadAsStringAsync();
                 var graphQLResponse = JsonConvert.DeserializeObject<GraphQLResponse>(result);
 
-                if (graphQLResponse?.Data?.League?.Events != null)
+                if (graphQLResponse?.Data?.League?.Events?.Nodes != null)
                 {
-                    events = graphQLResponse.Data.League.Events;
+                    events = graphQLResponse.Data.League.Events.Nodes;
                     Log($"Fetched {events.Count} events.");
                 }
                 else
@@ -304,9 +306,10 @@ namespace StartGGgraphicGenerator
                 var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
                 var response = await client.PostAsync(apiUrl, content);
+                var result = await response.Content.ReadAsStringAsync();
+                Log($"Tournament standings response: {result}");
                 response.EnsureSuccessStatusCode();
 
-                var result = await response.Content.ReadAsStringAsync();
                 var graphQLResponse = JsonConvert.DeserializeObject<GraphQLResponse>(result);
 
                 players.Clear();
@@ -348,13 +351,19 @@ namespace StartGGgraphicGenerator
                     query = @"
                     {
                         league(slug: """ + slug + @""") {
-                            standings(query: {perPage: 100, page: 1}) {
+                            events {
                                 nodes {
-                                    entrant {
-                                        id
-                                        name
+                                    id
+                                    name
+                                    standings(query: {perPage: 100, page: 1}) {
+                                        nodes {
+                                            entrant {
+                                                id
+                                                name
+                                            }
+                                            placement
+                                        }
                                     }
-                                    placement
                                 }
                             }
                         }
@@ -365,26 +374,31 @@ namespace StartGGgraphicGenerator
                 var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
                 var response = await client.PostAsync(apiUrl, content);
+                var result = await response.Content.ReadAsStringAsync();
+                Log($"League standings response: {result}");
                 response.EnsureSuccessStatusCode();
 
-                var result = await response.Content.ReadAsStringAsync();
                 var graphQLResponse = JsonConvert.DeserializeObject<GraphQLResponse>(result);
 
                 players.Clear();
 
-                Log($"GraphQL response: {result}");
-
-                if (graphQLResponse?.Data?.League?.Standings?.Nodes != null)
+                if (graphQLResponse?.Data?.League?.Events?.Nodes != null)
                 {
-                    foreach (var node in graphQLResponse.Data.League.Standings.Nodes)
+                    foreach (var evt in graphQLResponse.Data.League.Events.Nodes)
                     {
-                        players.Add(new Player
+                        if (evt.Standings?.Nodes != null)
                         {
-                            Name = node.Entrant.Name,
-                            Placement = node.Placement
-                        });
+                            foreach (var node in evt.Standings.Nodes)
+                            {
+                                players.Add(new Player
+                                {
+                                    Name = node.Entrant.Name,
+                                    Placement = node.Placement
+                                });
+                            }
+                        }
                     }
-                    Log($"Fetched standings from {graphQLResponse.Data.League.Standings.Nodes.Count} nodes.");
+                    Log($"Fetched standings from {graphQLResponse.Data.League.Events.Nodes.Count} events.");
                 }
                 else
                 {
@@ -422,9 +436,10 @@ namespace StartGGgraphicGenerator
                 var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
                 var response = await client.PostAsync(apiUrl, content);
+                var result = await response.Content.ReadAsStringAsync();
+                Log($"Event players response: {result}");
                 response.EnsureSuccessStatusCode();
 
-                var result = await response.Content.ReadAsStringAsync();
                 var graphQLResponse = JsonConvert.DeserializeObject<GraphQLResponse>(result);
 
                 var playerList = new List<Player>();
@@ -505,21 +520,26 @@ namespace StartGGgraphicGenerator
 
         private void Window_DragOver(object sender, DragEventArgs e)
         {
-            e.Effects = DragDropEffects.Copy;
-            e.Handled = true;
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effects = DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
         }
 
         private void Window_Drop(object sender, DragEventArgs e)
         {
-            if (e.Data != null && e.Data.GetDataPresent(DataFormats.FileDrop))
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
-                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                var files = (string[])e.Data.GetData(DataFormats.FileDrop);
                 if (files.Length > 0)
                 {
-                    string filePath = files[0];
-                    droppedImagePath = filePath;
-                    DroppedImage.Source = new BitmapImage(new Uri(filePath));
-                    Log($"Image dropped: {filePath}");
+                    droppedImagePath = files[0];
+                    DroppedImage.Source = new BitmapImage(new Uri(droppedImagePath));
+                    Log($"Image dropped: {droppedImagePath}");
                 }
             }
         }
@@ -557,8 +577,12 @@ namespace StartGGgraphicGenerator
 
     public class League
     {
-        public List<Event> Events { get; set; }
-        public Standings Standings { get; set; }
+        public EventConnection Events { get; set; }
+    }
+
+    public class EventConnection
+    {
+        public List<Event> Nodes { get; set; }
     }
 
     public class Standings
@@ -577,3 +601,4 @@ namespace StartGGgraphicGenerator
         public string Name { get; set; }
     }
 }
+
