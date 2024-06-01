@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Newtonsoft.Json;
 
 namespace StartGGgraphicGenerator
@@ -23,6 +24,7 @@ namespace StartGGgraphicGenerator
         private string netlifySiteId;
         private string netlifyAccessToken;
         private static string logFilePath = "log.txt";
+        private string droppedImagePath;
 
         public MainWindow()
         {
@@ -94,7 +96,7 @@ namespace StartGGgraphicGenerator
                 if (players.Count > 0)
                 {
                     Log("Generating HTML file...");
-                    var htmlContent = HTMLGenerator.GenerateHtmlContent(players, selectedFont, selectedColor);
+                    var htmlContent = HTMLGenerator.GenerateHtmlContent(players, selectedFont, selectedColor, droppedImagePath);
 
                     // Save HTML file locally
                     var sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PlayerData.html");
@@ -145,7 +147,7 @@ namespace StartGGgraphicGenerator
                 if (players.Count > 0)
                 {
                     Log("Generating HTML file...");
-                    var htmlContent = HTMLGenerator.GenerateHtmlContent(players, selectedFont, selectedColor);
+                    var htmlContent = HTMLGenerator.GenerateHtmlContent(players, selectedFont, selectedColor, droppedImagePath);
 
                     // Save HTML file locally
                     var sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PlayerData.html");
@@ -498,6 +500,25 @@ namespace StartGGgraphicGenerator
             if (ColorPicker.SelectedColor.HasValue)
             {
                 selectedColor = ColorPicker.SelectedColor.Value;
+            }
+        }
+
+        private void Window_DragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = DragDropEffects.Copy;
+            e.Handled = true;
+        }
+
+        private void Window_Drop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                var files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                if (files != null && files.Length > 0)
+                {
+                    droppedImagePath = files[0];
+                    DroppedImage.Source = new BitmapImage(new Uri(droppedImagePath));
+                }
             }
         }
 

@@ -7,8 +7,24 @@ namespace StartGGgraphicGenerator
 {
     public static class HTMLGenerator
     {
-        public static string GenerateHtmlContent(List<Player> players, string selectedFont, Color selectedColor)
+        public static string GenerateHtmlContent(List<Player> players, string selectedFont, Color selectedColor, string imagePath)
         {
+            string colorHex = $"#{selectedColor.R:X2}{selectedColor.G:X2}{selectedColor.B:X2}";
+            string gradientColorHex = "#808080"; // Grey color
+
+            // Calculate gradient steps
+            int playerCount = players.Count;
+            double stepR = (128 - selectedColor.R) / (double)playerCount;
+            double stepG = (128 - selectedColor.G) / (double)playerCount;
+            double stepB = (128 - selectedColor.B) / (double)playerCount;
+
+            string imageHtml = string.Empty;
+            if (!string.IsNullOrEmpty(imagePath))
+            {
+                string imageBase64 = Convert.ToBase64String(File.ReadAllBytes(imagePath));
+                imageHtml = $"<img src='data:image/png;base64,{imageBase64}' width='200' height='200' style='display: block; margin-left: auto; margin-right: auto;' />";
+            }
+
             string html = $@"
             <!DOCTYPE html>
             <html>
@@ -20,22 +36,23 @@ namespace StartGGgraphicGenerator
                 </style>
             </head>
             <body>
+                {imageHtml}
                 <div class='players'>";
-
             int count = 0;
-            int totalPlayers = players.Count;
-
             foreach (var player in players)
             {
-                Color playerColor = CalculateGradientColor(selectedColor, Colors.Gray, count, totalPlayers);
-                string colorHex = $"#{playerColor.R:X2}{playerColor.G:X2}{playerColor.B:X2}";
-
                 if (count % 2 == 0)
                 {
                     html += "<div class='player-row'>";
                 }
 
-                html += $"<div class='player-container'><div class='player-box' style='background-color: {colorHex};'>{player.Placement} - {player.Name}</div></div>";
+                // Calculate current gradient color
+                int currentR = (int)(selectedColor.R + stepR * count);
+                int currentG = (int)(selectedColor.G + stepG * count);
+                int currentB = (int)(selectedColor.B + stepB * count);
+                string currentColorHex = $"#{currentR:X2}{currentG:X2}{currentB:X2}";
+
+                html += $"<div class='player-container'><div class='player-box' style='background-color: {currentColorHex};'>{player.Placement} - {player.Name}</div></div>";
 
                 if (count % 2 == 1)
                 {
@@ -54,17 +71,7 @@ namespace StartGGgraphicGenerator
                 </div>
             </body>
             </html>";
-
             return html;
-        }
-
-        private static Color CalculateGradientColor(Color startColor, Color endColor, int step, int totalSteps)
-        {
-            byte r = (byte)(startColor.R + (endColor.R - startColor.R) * step / totalSteps);
-            byte g = (byte)(startColor.G + (endColor.G - startColor.G) * step / totalSteps);
-            byte b = (byte)(startColor.B + (endColor.B - startColor.B) * step / totalSteps);
-
-            return Color.FromRgb(r, g, b);
         }
     }
 }
