@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -8,7 +9,6 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using IdentityModel.OidcClient;
 using Newtonsoft.Json;
 
 namespace StartGGgraphicGenerator
@@ -92,13 +92,22 @@ namespace StartGGgraphicGenerator
                     var htmlContent = HTMLGenerator.GenerateHtmlContent(players, selectedFont, selectedColor);
 
                     // Save HTML file locally
-                    var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PlayerData.html");
-                    File.WriteAllText(filePath, htmlContent);
+                    var sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PlayerData.html");
+                    File.WriteAllText(sourceFilePath, htmlContent);
+
+                    // Define the deploy directory
+                    var deployDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "deploy");
 
                     Log("Deploying HTML file to Netlify...");
-                    await NetlifyDeployer.DeployToNetlify(netlifySiteId, htmlContent, netlifyAccessToken);
-
-                    Log("HTML file deployed successfully.");
+                    try
+                    {
+                        NetlifyDeployer.Deploy(sourceFilePath, deployDirectory);
+                        Log("HTML file deployed successfully.");
+                    }
+                    catch (Exception ex)
+                    {
+                        Log($"Deployment failed: {ex.Message}");
+                    }
                 }
                 else
                 {
@@ -216,7 +225,7 @@ namespace StartGGgraphicGenerator
             if (File.Exists("settings.txt"))
             {
                 var lines = File.ReadAllLines("settings.txt");
-                if (lines.Length >= 5)
+                if (lines.Length >= 4)
                 {
                     ApiKeyTextBox.Text = lines[0];
                     UrlTextBox.Text = lines[1];

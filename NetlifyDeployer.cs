@@ -1,50 +1,181 @@
 ﻿using System;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
+using System.Diagnostics;
+using System.IO;
 
 namespace StartGGgraphicGenerator
 {
     public static class NetlifyDeployer
     {
-        public static async Task DeployToNetlify(string siteId, string htmlContent, string token)
+        public static void Deploy(string sourceFilePath, string deployDirectory)
         {
             try
             {
-                using (var client = new HttpClient())
+                string nodePath = GetNodeJsPath();
+                if (string.IsNullOrEmpty(nodePath))
                 {
-                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                    throw new Exception("Node.js not found. Please install it from https://nodejs.org/");
+                }
 
-                    var content = new StringContent(htmlContent);
-                    content.Headers.ContentType = new MediaTypeHeaderValue("text/html");
+                string netlifyCliPath = GetNetlifyCliPath();
+                if (string.IsNullOrEmpty(netlifyCliPath))
+                {
+                    throw new Exception("Netlify CLI not found. Please install it from https://docs.netlify.com/cli/get-started/");
+                }
 
-                    var response = await client.PutAsync($"https://api.netlify.com/api/v1/sites/{siteId}/files/index.html", content);
-                    response.EnsureSuccessStatusCode();
+                // Create the deploy directory if it doesn't exist
+                if (!Directory.Exists(deployDirectory))
+                {
+                    Directory.CreateDirectory(deployDirectory);
+                }
 
-                    var responseBody = await response.Content.ReadAsStringAsync();
-                    var result = JsonConvert.DeserializeObject<NetlifyResponse>(responseBody);
+                Console.WriteLine($"Deploy directory created at: {deployDirectory}");
 
-                    if (result != null && !string.IsNullOrEmpty(result.url))
+                // Copy and rename the HTML file to index.html in the deploy directory
+                string destinationFilePath = Path.Combine(deployDirectory, "index.html");
+                File.Copy(sourceFilePath, destinationFilePath, true);
+
+                Console.WriteLine($"File copied to: {destinationFilePath}");
+
+                // Include the Node.js directory in the PATH environment variable
+                string nodeDirectory = Path.GetDirectoryName(nodePath);
+                string originalPath = Environment.GetEnvironmentVariable("PATH");
+                string newPath = $"{nodeDirectory};{originalPath}";
+
+                // Deploy the directory using Netlify CLI
+                ProcessStartInfo deployStartInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/C cd /d \"{deployDirectory}\" && \"{netlifyCliPath}\" deploy --dir . --prod",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    EnvironmentVariables = { ["PATH"] = newPath } // Set the updated PATH
+                };
+
+                using (Process deployProcess = new Process { StartInfo = deployStartInfo })
+                {
+                    deployProcess.Start();
+                    string output = deployProcess.StandardOutput.ReadToEnd();
+                    string error = deployProcess.StandardError.ReadToEnd();
+                    deployProcess.WaitForExit();
+
+                    Console.WriteLine(output);
+                    if (!string.IsNullOrEmpty(error))
                     {
-                        Console.WriteLine($"Site deployed to: {result.url}");
+                        throw new Exception($"Error during deployment: {error}");
                     }
-                    else
+
+                    Console.WriteLine("Deployment completed successfully.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred during deployment: {ex.Message}");
+                throw;
+            }
+        }
+
+        private static string GetNodeJsPath()
+        {
+            string[] possiblePaths =
+            {
+                @"C:\Program Files\nodejs\node.exe",
+                @"C:\Program Files\nodejs\node.cmd",
+                @"C:\Users\" + Environment.UserName + @"\AppData\Roaming\npm\node.exe",
+                @"C:\Users\" + Environment.UserName + @"\AppData\Roaming\npm\node.cmd"
+            };
+
+            foreach (string path in possiblePaths)
+            {
+                if (File.Exists(path))
+                {
+                    return path;
+                }
+            }
+
+            try
+            {
+                ProcessStartInfo startInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = "/C where node",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using (Process process = new Process { StartInfo = startInfo })
+                {
+                    process.Start();
+                    string output = process.StandardOutput.ReadToEnd();
+                    process.WaitForExit();
+
+                    if (!string.IsNullOrEmpty(output))
                     {
-                        throw new Exception("Failed to retrieve deployment URL.");
+                        string[] paths = output.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+                        return paths[0]; // Return the first found path
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An error occurred while deploying to Netlify: {ex.Message}");
+                Console.WriteLine($"Failed to locate Node.js: {ex.Message}");
             }
+
+            return null;
         }
 
-        private class NetlifyResponse
+        private static string GetNetlifyCliPath()
         {
-            public string url { get; set; }
+            string[] possiblePaths =
+            {
+                @"C:\Program Files\nodejs\netlify.cmd",
+                @"C:\Program Files\nodejs\netlify.exe",
+                @"C:\Users\" + Environment.UserName + @"\AppData\Roaming\npm\netlify.cmd",
+                @"C:\Users\" + Environment.UserName + @"\AppData\Roaming\npm\netlify.exe"
+            };
+
+            foreach (string path in possiblePaths)
+            {
+                if (File.Exists(path))
+                {
+                    return path;
+                }
+            }
+
+            try
+            {
+                ProcessStartInfo startInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = "/C where netlify",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using (Process process = new Process { StartInfo = startInfo })
+                {
+                    process.Start();
+                    string output = process.StandardOutput.ReadToEnd();
+                    process.WaitForExit();
+
+                    if (!string.IsNullOrEmpty(output))
+                    {
+                        string[] paths = output.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+                        return paths[0]; // Return the first found path
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to locate Netlify CLI: {ex.Message}");
+            }
+
+            return null;
         }
     }
 }
