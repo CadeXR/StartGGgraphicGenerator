@@ -8,8 +8,8 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using Newtonsoft.Json;
 using System.Windows.Media.Imaging;
+using Newtonsoft.Json;
 
 namespace StartGGgraphicGenerator
 {
@@ -30,6 +30,7 @@ namespace StartGGgraphicGenerator
         {
             InitializeComponent();
             LoadSettings();
+            UpdateNetlifyControlsState();
         }
 
         private async void FetchDataButton_Click(object sender, RoutedEventArgs e)
@@ -102,18 +103,30 @@ namespace StartGGgraphicGenerator
                     var sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PlayerData.html");
                     File.WriteAllText(sourceFilePath, htmlContent);
 
-                    // Define the deploy directory
-                    var deployDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "deploy");
+                    if (PushToServerCheckBox.IsChecked == true)
+                    {
+                        // Define the deploy directory
+                        var deployDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "deploy");
 
-                    Log("Deploying HTML file to Netlify...");
-                    try
-                    {
-                        NetlifyDeployer.Deploy(sourceFilePath, deployDirectory, netlifySiteId);
-                        Log("HTML file deployed successfully.");
+                        Log("Deploying HTML file to Netlify...");
+                        try
+                        {
+                            NetlifyDeployer.Deploy(sourceFilePath, deployDirectory, netlifySiteId);
+                            Log("HTML file deployed successfully.");
+                        }
+                        catch (Exception ex)
+                        {
+                            Log($"Deployment failed: {ex.Message}");
+                        }
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Log($"Deployment failed: {ex.Message}");
+                        Log("Opening HTML file locally.");
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = sourceFilePath,
+                            UseShellExecute = true
+                        });
                     }
                 }
                 else
@@ -153,18 +166,30 @@ namespace StartGGgraphicGenerator
                     var sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PlayerData.html");
                     File.WriteAllText(sourceFilePath, htmlContent);
 
-                    // Define the deploy directory
-                    var deployDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "deploy");
+                    if (PushToServerCheckBox.IsChecked == true)
+                    {
+                        // Define the deploy directory
+                        var deployDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "deploy");
 
-                    Log("Deploying HTML file to Netlify...");
-                    try
-                    {
-                        NetlifyDeployer.Deploy(sourceFilePath, deployDirectory, netlifySiteId);
-                        Log("HTML file deployed successfully.");
+                        Log("Deploying HTML file to Netlify...");
+                        try
+                        {
+                            NetlifyDeployer.Deploy(sourceFilePath, deployDirectory, netlifySiteId);
+                            Log("HTML file deployed successfully.");
+                        }
+                        catch (Exception ex)
+                        {
+                            Log($"Deployment failed: {ex.Message}");
+                        }
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Log($"Deployment failed: {ex.Message}");
+                        Log("Opening HTML file locally.");
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = sourceFilePath,
+                            UseShellExecute = true
+                        });
                     }
                 }
                 else
@@ -543,6 +568,23 @@ namespace StartGGgraphicGenerator
                 }
             }
         }
+
+        private void PushToServerCheckBox_Checked(object sender, RoutedEventArgs e)
+        {
+            UpdateNetlifyControlsState();
+        }
+
+        private void PushToServerCheckBox_Unchecked(object sender, RoutedEventArgs e)
+        {
+            UpdateNetlifyControlsState();
+        }
+
+        private void UpdateNetlifyControlsState()
+        {
+            bool isEnabled = PushToServerCheckBox.IsChecked == true;
+            NetlifySiteIdTextBox.IsEnabled = isEnabled;
+            NetlifyAccessTokenBox.IsEnabled = isEnabled;
+        }
     }
 
     public class Player
@@ -601,4 +643,3 @@ namespace StartGGgraphicGenerator
         public string Name { get; set; }
     }
 }
-
