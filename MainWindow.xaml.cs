@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -23,7 +22,7 @@ namespace StartGGgraphicGenerator
         private string selectedFont = "Arial";
         private string netlifySiteId;
         private string netlifyAccessToken;
-        private static readonly string logFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "application.log");
+        private static string logFilePath = "log.txt";
 
         public MainWindow()
         {
@@ -31,38 +30,35 @@ namespace StartGGgraphicGenerator
             LoadSettings();
         }
 
-        private async void AuthorizeButton_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Please enter your Netlify Site ID and Access Token.");
-        }
-
         private async void FetchDataButton_Click(object sender, RoutedEventArgs e)
         {
             apiToken = ApiKeyTextBox.Text;
             string url = UrlTextBox.Text;
             string slug = ExtractSlugFromUrl(url);
+            bool isLeague = url.Contains("/league/");
 
             if (!string.IsNullOrEmpty(slug))
             {
-                Log("Fetching events from tournament...");
-                try
+                if (isLeague)
                 {
-                    await FetchEventsFromTournament(slug);
-                    if (events.Count > 0)
-                    {
-                        Log($"Events fetched successfully. Found {events.Count} events.");
-                        GenerateEventButtons();
-                    }
-                    else
-                    {
-                        Log("No events found.");
-                        MessageBox.Show("No events found for this tournament.");
-                    }
+                    Log("Fetching events from league...");
+                    await FetchEventsFromLeague(slug);
                 }
-                catch (Exception ex)
+                else
                 {
-                    Log($"Error fetching events: {ex.Message}");
-                    MessageBox.Show($"Error fetching events: {ex.Message}");
+                    Log("Fetching events from tournament...");
+                    await FetchEventsFromTournament(slug);
+                }
+
+                if (events.Count > 0)
+                {
+                    Log($"Events fetched successfully. Found {events.Count} events.");
+                    GenerateEventButtons();
+                }
+                else
+                {
+                    Log("No events found.");
+                    MessageBox.Show("No events found for this tournament or league.");
                 }
             }
             else
@@ -94,49 +90,92 @@ namespace StartGGgraphicGenerator
             {
                 string eventId = button.Tag.ToString();
                 Log($"Fetching players from event: {button.Content}");
-                try
+                players = await FetchPlayersFromEvent(eventId);
+                if (players.Count > 0)
                 {
-                    players = await FetchPlayersFromEvent(eventId);
-                    if (players.Count > 0)
+                    Log("Generating HTML file...");
+                    var htmlContent = HTMLGenerator.GenerateHtmlContent(players, selectedFont, selectedColor);
+
+                    // Save HTML file locally
+                    var sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PlayerData.html");
+                    File.WriteAllText(sourceFilePath, htmlContent);
+
+                    // Define the deploy directory
+                    var deployDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "deploy");
+
+                    Log("Deploying HTML file to Netlify...");
+                    try
                     {
-                        Log("Generating HTML file...");
-                        var htmlContent = HTMLGenerator.GenerateHtmlContent(players, selectedFont, selectedColor);
-
-                        // Save HTML file locally
-                        var sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PlayerData.html");
-                        File.WriteAllText(sourceFilePath, htmlContent);
-
-                        // Define the deploy directory
-                        var deployDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "deploy");
-
-                        Log("Deploying HTML file to Netlify...");
-                        try
-                        {
-                            string siteId = NetlifySiteIdTextBox.Text; // Get the site ID from the TextBox
-                            await Task.Run(() => NetlifyDeployer.Deploy(sourceFilePath, deployDirectory, siteId));
-                            Log("HTML file deployed successfully.");
-                        }
-                        catch (Exception ex)
-                        {
-                            Log($"Deployment failed: {ex.Message}");
-                            MessageBox.Show($"Deployment failed: {ex.Message}");
-                        }
+                        NetlifyDeployer.Deploy(sourceFilePath, deployDirectory, netlifySiteId);
+                        Log("HTML file deployed successfully.");
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        Log("No players found for this event.");
-                        MessageBox.Show("No players found for this event.");
+                        Log($"Deployment failed: {ex.Message}");
                     }
                 }
-                catch (Exception ex)
+                else
                 {
-                    Log($"Error fetching players: {ex.Message}");
-                    MessageBox.Show($"Error fetching players: {ex.Message}");
+                    Log("No players found for this event.");
+                    MessageBox.Show("No players found for this event.");
                 }
             }
         }
 
+        private async void FetchStandingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            apiToken = ApiKeyTextBox.Text;
+            string url = UrlTextBox.Text;
+            string slug = ExtractSlugFromUrl(url);
+            bool isLeague = url.Contains("/league/");
 
+            if (!string.IsNullOrEmpty(slug))
+            {
+                if (isLeague)
+                {
+                    Log("Fetching standings from league...");
+                    await FetchStandingsFromLeague(slug);
+                }
+                else
+                {
+                    Log("Fetching standings from tournament...");
+                    await FetchStandingsFromTournament(slug);
+                }
+
+                if (players.Count > 0)
+                {
+                    Log("Generating HTML file...");
+                    var htmlContent = HTMLGenerator.GenerateHtmlContent(players, selectedFont, selectedColor);
+
+                    // Save HTML file locally
+                    var sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PlayerData.html");
+                    File.WriteAllText(sourceFilePath, htmlContent);
+
+                    // Define the deploy directory
+                    var deployDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "deploy");
+
+                    Log("Deploying HTML file to Netlify...");
+                    try
+                    {
+                        NetlifyDeployer.Deploy(sourceFilePath, deployDirectory, netlifySiteId);
+                        Log("HTML file deployed successfully.");
+                    }
+                    catch (Exception ex)
+                    {
+                        Log($"Deployment failed: {ex.Message}");
+                    }
+                }
+                else
+                {
+                    Log("No players found for this league or tournament.");
+                    MessageBox.Show("No players found for this league or tournament.");
+                }
+            }
+            else
+            {
+                Log("Invalid URL entered.");
+            }
+        }
 
         private static string ExtractSlugFromUrl(string url)
         {
@@ -186,6 +225,177 @@ namespace StartGGgraphicGenerator
                 {
                     Log("No events found for this tournament.");
                     MessageBox.Show("No events found for this tournament.");
+                }
+            }
+        }
+
+        private async Task FetchEventsFromLeague(string slug)
+        {
+            using (var client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
+
+                var query = new
+                {
+                    query = @"
+                    {
+                        league(slug: """ + slug + @""") {
+                            events {
+                                id
+                                name
+                            }
+                        }
+                    }"
+                };
+
+                var jsonContent = JsonConvert.SerializeObject(query);
+                var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+                var response = await client.PostAsync(apiUrl, content);
+                response.EnsureSuccessStatusCode();
+
+                var result = await response.Content.ReadAsStringAsync();
+                var graphQLResponse = JsonConvert.DeserializeObject<GraphQLResponse>(result);
+
+                if (graphQLResponse?.Data?.League?.Events != null)
+                {
+                    events = graphQLResponse.Data.League.Events;
+                    Log($"Fetched {events.Count} events.");
+                }
+                else
+                {
+                    Log("No events found for this league.");
+                    MessageBox.Show("No events found for this league.");
+                }
+            }
+        }
+
+        private async Task FetchStandingsFromTournament(string slug)
+        {
+            using (var client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
+
+                var query = new
+                {
+                    query = @"
+                    {
+                        tournament(slug: """ + slug + @""") {
+                            events {
+                                id
+                                name
+                                standings(query: {perPage: 100, page: 1}) {
+                                    nodes {
+                                        entrant {
+                                            id
+                                            name
+                                        }
+                                        placement
+                                    }
+                                }
+                            }
+                        }
+                    }"
+                };
+
+                var jsonContent = JsonConvert.SerializeObject(query);
+                var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+                var response = await client.PostAsync(apiUrl, content);
+                response.EnsureSuccessStatusCode();
+
+                var result = await response.Content.ReadAsStringAsync();
+                var graphQLResponse = JsonConvert.DeserializeObject<GraphQLResponse>(result);
+
+                players.Clear();
+
+                if (graphQLResponse?.Data?.Tournament?.Events != null)
+                {
+                    foreach (var evt in graphQLResponse.Data.Tournament.Events)
+                    {
+                        if (evt.Standings?.Nodes != null)
+                        {
+                            foreach (var node in evt.Standings.Nodes)
+                            {
+                                players.Add(new Player
+                                {
+                                    Name = node.Entrant.Name,
+                                    Placement = node.Placement
+                                });
+                            }
+                        }
+                    }
+                    Log($"Fetched standings from {graphQLResponse.Data.Tournament.Events.Count} events.");
+                }
+                else
+                {
+                    Log("No standings found for this tournament.");
+                    MessageBox.Show("No standings found for this tournament.");
+                }
+            }
+        }
+
+        private async Task FetchStandingsFromLeague(string slug)
+        {
+            using (var client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiToken);
+
+                var query = new
+                {
+                    query = @"
+                    {
+                        league(slug: """ + slug + @""") {
+                            events {
+                                id
+                                name
+                                standings(query: {perPage: 100, page: 1}) {
+                                    nodes {
+                                        entrant {
+                                            id
+                                            name
+                                        }
+                                        placement
+                                    }
+                                }
+                            }
+                        }
+                    }"
+                };
+
+                var jsonContent = JsonConvert.SerializeObject(query);
+                var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+                var response = await client.PostAsync(apiUrl, content);
+                response.EnsureSuccessStatusCode();
+
+                var result = await response.Content.ReadAsStringAsync();
+                var graphQLResponse = JsonConvert.DeserializeObject<GraphQLResponse>(result);
+
+                players.Clear();
+
+                if (graphQLResponse?.Data?.League?.Events != null)
+                {
+                    foreach (var evt in graphQLResponse.Data.League.Events)
+                    {
+                        if (evt.Standings?.Nodes != null)
+                        {
+                            foreach (var node in evt.Standings.Nodes)
+                            {
+                                players.Add(new Player
+                                {
+                                    Name = node.Entrant.Name,
+                                    Placement = node.Placement
+                                });
+                            }
+                        }
+                    }
+                    Log($"Fetched standings from {graphQLResponse.Data.League.Events.Count} events.");
+                }
+                else
+                {
+                    Log("No standings found for this league.");
+                    MessageBox.Show("No standings found for this league.");
                 }
             }
         }
@@ -266,46 +476,12 @@ namespace StartGGgraphicGenerator
                 NetlifyAccessTokenBox.Password
             };
             File.WriteAllLines("settings.txt", lines);
+            Log("Settings saved.");
         }
 
-        private void TextBox_GotFocus(object sender, RoutedEventArgs e)
+        private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
-            var textBox = sender as TextBox;
-            if (textBox != null && textBox.Text == textBox.Tag.ToString())
-            {
-                textBox.Text = "";
-                textBox.Foreground = new SolidColorBrush(Colors.Black);
-            }
-        }
-
-        private void TextBox_LostFocus(object sender, RoutedEventArgs e)
-        {
-            var textBox = sender as TextBox;
-            if (textBox != null && string.IsNullOrWhiteSpace(textBox.Text))
-            {
-                textBox.Text = textBox.Tag.ToString();
-                textBox.Foreground = new SolidColorBrush(Colors.Gray);
-            }
-        }
-
-        private void PasswordBox_GotFocus(object sender, RoutedEventArgs e)
-        {
-            var passwordBox = sender as PasswordBox;
-            if (passwordBox != null && passwordBox.Password == passwordBox.Tag.ToString())
-            {
-                passwordBox.Password = "";
-                passwordBox.Foreground = new SolidColorBrush(Colors.Black);
-            }
-        }
-
-        private void PasswordBox_LostFocus(object sender, RoutedEventArgs e)
-        {
-            var passwordBox = sender as PasswordBox;
-            if (passwordBox != null && string.IsNullOrWhiteSpace(passwordBox.Password))
-            {
-                passwordBox.Password = passwordBox.Tag.ToString();
-                passwordBox.Foreground = new SolidColorBrush(Colors.Gray);
-            }
+            SaveSettings();
         }
 
         private void NetlifyAccessTokenBox_PasswordChanged(object sender, RoutedEventArgs e)
@@ -317,38 +493,20 @@ namespace StartGGgraphicGenerator
             }
         }
 
-        private void ColorPickerComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void ColorPicker_SelectedColorChanged(object sender, RoutedPropertyChangedEventArgs<Color?> e)
         {
-            if (ColorPickerComboBox.SelectedItem != null)
+            if (ColorPicker.SelectedColor.HasValue)
             {
-                var selectedColorString = (ColorPickerComboBox.SelectedItem as ComboBoxItem).Tag.ToString();
-                selectedColor = (Color)ColorConverter.ConvertFromString(selectedColorString);
+                selectedColor = ColorPicker.SelectedColor.Value;
             }
         }
 
         private void Log(string message)
         {
-            LogToFile(message);
-            LogTextBox.AppendText(message + Environment.NewLine);
+            string logMessage = $"{DateTime.Now}: {message}{Environment.NewLine}";
+            LogTextBox.AppendText(logMessage);
             LogTextBox.ScrollToEnd();
-        }
-
-        private static void LogToFile(string message)
-        {
-            try
-            {
-                File.AppendAllText(logFilePath, $"{DateTime.Now}: {message}{Environment.NewLine}");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Failed to write to log file: {ex.Message}");
-            }
-        }
-
-        private void SaveButton_Click(object sender, RoutedEventArgs e)
-        {
-            SaveSettings();
-            MessageBox.Show("Settings saved successfully.");
+            File.AppendAllText(logFilePath, logMessage);
         }
     }
 
@@ -367,6 +525,7 @@ namespace StartGGgraphicGenerator
     {
         public Event Event { get; set; }
         public Tournament Tournament { get; set; }
+        public League League { get; set; }
     }
 
     public class Event
@@ -374,6 +533,16 @@ namespace StartGGgraphicGenerator
         public string Id { get; set; }
         public string Name { get; set; }
         public Standings Standings { get; set; }
+    }
+
+    public class Tournament
+    {
+        public List<Event> Events { get; set; }
+    }
+
+    public class League
+    {
+        public List<Event> Events { get; set; }
     }
 
     public class Standings
@@ -390,10 +559,5 @@ namespace StartGGgraphicGenerator
     public class Entrant
     {
         public string Name { get; set; }
-    }
-
-    public class Tournament
-    {
-        public List<Event> Events { get; set; }
     }
 }

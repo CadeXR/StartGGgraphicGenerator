@@ -51,7 +51,7 @@ namespace StartGGgraphicGenerator
                 ProcessStartInfo linkStartInfo = new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
-                    Arguments = $"/C cd /d \"{deployDirectory}\" && \"{netlifyCliPath}\" link --id {siteId}",
+                    Arguments = $"/C cd /d \"{deployDirectory}\" && \"{netlifyCliPath}\" link --id \"{siteId}\"",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -59,7 +59,8 @@ namespace StartGGgraphicGenerator
                     EnvironmentVariables = { ["PATH"] = newPath }
                 };
 
-                Log("Linking directory to Netlify site...");
+                Log($"Linking directory to Netlify site with Site ID: {siteId}");
+                Log("Starting Netlify linking process...");
 
                 using (Process linkProcess = new Process { StartInfo = linkStartInfo })
                 {
