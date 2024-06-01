@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using IdentityModel.OidcClient;
 using Newtonsoft.Json;
 
 namespace StartGGgraphicGenerator
@@ -20,14 +21,18 @@ namespace StartGGgraphicGenerator
         private static List<Event> events = new List<Event>();
         private System.Windows.Media.Color selectedColor = System.Windows.Media.Colors.Blue;
         private string selectedFont = "Arial";
-        private string githubUsername;
-        private string githubRepository;
-        private string githubToken;
+        private string netlifySiteId;
+        private string netlifyAccessToken;
 
         public MainWindow()
         {
             InitializeComponent();
             LoadSettings();
+        }
+
+        private async void AuthorizeButton_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Please enter your Netlify Site ID and Access Token.");
         }
 
         private async void FetchDataButton_Click(object sender, RoutedEventArgs e)
@@ -84,11 +89,16 @@ namespace StartGGgraphicGenerator
                 if (players.Count > 0)
                 {
                     Log("Generating HTML file...");
-                    await Task.Run(() =>
-                    {
-                        HTMLGenerator.SaveHtmlToFile(players, selectedFont, selectedColor, githubUsername, githubRepository, githubToken);
-                    });
-                    Log("HTML file saved and pushed to GitHub successfully.");
+                    var htmlContent = HTMLGenerator.GenerateHtmlContent(players, selectedFont, selectedColor);
+
+                    // Save HTML file locally
+                    var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PlayerData.html");
+                    File.WriteAllText(filePath, htmlContent);
+
+                    Log("Deploying HTML file to Netlify...");
+                    await NetlifyDeployer.DeployToNetlify(netlifySiteId, htmlContent, netlifyAccessToken);
+
+                    Log("HTML file deployed successfully.");
                 }
                 else
                 {
@@ -206,13 +216,12 @@ namespace StartGGgraphicGenerator
             if (File.Exists("settings.txt"))
             {
                 var lines = File.ReadAllLines("settings.txt");
-                if (lines.Length >= 4)
+                if (lines.Length >= 5)
                 {
                     ApiKeyTextBox.Text = lines[0];
                     UrlTextBox.Text = lines[1];
-                    GitHubUsernameTextBox.Text = lines[2];
-                    GitHubRepositoryTextBox.Text = lines[3];
-                    GitHubTokenBox.Password = lines[4];
+                    NetlifySiteIdTextBox.Text = lines[2];
+                    NetlifyAccessTokenBox.Password = lines[3];
                 }
             }
         }
@@ -223,9 +232,8 @@ namespace StartGGgraphicGenerator
             {
                 ApiKeyTextBox.Text,
                 UrlTextBox.Text,
-                GitHubUsernameTextBox.Text,
-                GitHubRepositoryTextBox.Text,
-                GitHubTokenBox.Password
+                NetlifySiteIdTextBox.Text,
+                NetlifyAccessTokenBox.Password
             };
             File.WriteAllLines("settings.txt", lines);
         }
@@ -270,12 +278,12 @@ namespace StartGGgraphicGenerator
             }
         }
 
-        private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+        private void NetlifyAccessTokenBox_PasswordChanged(object sender, RoutedEventArgs e)
         {
             var passwordBox = sender as PasswordBox;
             if (passwordBox != null)
             {
-                githubToken = passwordBox.Password;
+                netlifyAccessToken = passwordBox.Password;
             }
         }
 

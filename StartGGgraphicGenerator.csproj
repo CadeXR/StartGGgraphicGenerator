@@ -19,8 +19,10 @@
 
   <ItemGroup>
     <PackageReference Include="Extended.Wpf.Toolkit" Version="4.6.0" />
+    <PackageReference Include="IdentityModel.OidcClient" Version="6.0.0" />
     <PackageReference Include="ImageResizer" Version="4.2.8" />
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.77" />
+    <PackageReference Include="NetlifySharp" Version="1.1.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="System.Reactive.Windows.Forms" Version="6.0.1" />
   </ItemGroup>

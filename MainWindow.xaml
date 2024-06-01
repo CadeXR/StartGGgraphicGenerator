@@ -6,10 +6,8 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="250" />
-            <!-- Adjust width as needed -->
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -23,7 +21,7 @@
         </Grid.RowDefinitions>
 
         <TextBlock Text="Start.GG Graphic Generator" FontWeight="Bold" FontSize="16" Grid.ColumnSpan="2"/>
-        <TextBlock Text="Version 0.1.3" Grid.Row="1" Grid.ColumnSpan="2"/>
+        <TextBlock Text="Version 0.1.2" Grid.Row="1" Grid.ColumnSpan="2"/>
         <TextBlock Text="Created by CadeXR" Grid.Row="2" Margin="0,0,0,10" Grid.ColumnSpan="2"/>
 
         <TextBlock Text="Start.GG API Key:" Grid.Row="3"/>
@@ -32,15 +30,13 @@
         <TextBlock Text="Tournament URL:" Grid.Row="4"/>
         <TextBox x:Name="UrlTextBox" Grid.Row="4" Width="400" Margin="10,0,0,10"/>
 
-        <TextBlock Text="GitHub Username:" Grid.Row="5"/>
-        <TextBox x:Name="GitHubUsernameTextBox" Grid.Row="5" Width="400" Margin="10,0,0,10"/>
-        <TextBlock Text="GitHub Repository:" Grid.Row="6"/>
-        <TextBox x:Name="GitHubRepositoryTextBox" Grid.Row="6" Width="400" Margin="10,0,0,10"/>
-        <TextBlock Text="GitHub Token:" Grid.Row="7"/>
-        <PasswordBox x:Name="GitHubTokenBox" Grid.Row="7" Width="400" Margin="10,0,0,10" PasswordChanged="PasswordBox_PasswordChanged"/>
+        <TextBlock Text="Netlify Site ID:" Grid.Row="5"/>
+        <TextBox x:Name="NetlifySiteIdTextBox" Grid.Row="5" Width="400" Margin="10,0,0,10"/>
+        <TextBlock Text="Netlify Access Token:" Grid.Row="6"/>
+        <PasswordBox x:Name="NetlifyAccessTokenBox" Grid.Row="6" Width="400" Margin="10,0,0,10" PasswordChanged="NetlifyAccessTokenBox_PasswordChanged"/>
 
-        <TextBlock Text="Select Color:" Grid.Row="8"/>
-        <ComboBox x:Name="ColorPickerComboBox" Grid.Row="8" Width="400" Margin="10,0,0,10" SelectionChanged="ColorPickerComboBox_SelectionChanged">
+        <TextBlock Text="Select Color:" Grid.Row="7"/>
+        <ComboBox x:Name="ColorPickerComboBox" Grid.Row="7" Width="150" Height="25" Margin="10,0,0,10" SelectionChanged="ColorPickerComboBox_SelectionChanged">
             <ComboBoxItem Content="Blue" Tag="Blue"/>
             <ComboBoxItem Content="Red" Tag="Red"/>
             <ComboBoxItem Content="Green" Tag="Green"/>
@@ -49,12 +45,13 @@
             <ComboBoxItem Content="Orange" Tag="Orange"/>
         </ComboBox>
 
-        <StackPanel Grid.Row="9" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,10,0,10">
+        <StackPanel Grid.Row="8" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,5,0,10">
             <Button x:Name="FetchDataButton" Content="Fetch Events" Width="150" Height="30" Margin="0,0,10,0" Click="FetchDataButton_Click"/>
-            <Button x:Name="SaveButton" Content="Save Settings" Width="150" Height="30" Click="SaveButton_Click"/>
+            <Button x:Name="SaveButton" Content="Save Settings" Width="150" Height="30" Margin="0,0,10,0" Click="SaveButton_Click"/>
+            <Button x:Name="AuthorizeButton" Content="Authorize" Width="150" Height="30" Click="AuthorizeButton_Click"/>
         </StackPanel>
 
-        <ScrollViewer Grid.Row="10" Grid.Column="0" VerticalScrollBarVisibility="Auto" Height="200" Grid.ColumnSpan="1">
+        <ScrollViewer Grid.Row="9" Grid.Column="0" VerticalScrollBarVisibility="Auto" Grid.ColumnSpan="1">
             <StackPanel x:Name="EventsStackPanel" Margin="10"/>
         </ScrollViewer>
 
