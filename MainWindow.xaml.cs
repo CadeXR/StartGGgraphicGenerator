@@ -8,8 +8,8 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using Newtonsoft.Json;
+using System.Windows.Media.Imaging;
 
 namespace StartGGgraphicGenerator
 {
@@ -25,12 +25,31 @@ namespace StartGGgraphicGenerator
         private string netlifyAccessToken;
         private static string logFilePath = "log.txt";
         private string droppedImagePath;
+        private bool pushToServer = false;
 
         public MainWindow()
         {
             InitializeComponent();
             LoadSettings();
-            UpdateNetlifyControlsState();
+            UpdateNetlifyFields();
+        }
+
+        private void PushToServerCheckBox_Checked(object sender, RoutedEventArgs e)
+        {
+            pushToServer = true;
+            UpdateNetlifyFields();
+        }
+
+        private void PushToServerCheckBox_Unchecked(object sender, RoutedEventArgs e)
+        {
+            pushToServer = false;
+            UpdateNetlifyFields();
+        }
+
+        private void UpdateNetlifyFields()
+        {
+            NetlifySiteIdTextBox.IsEnabled = pushToServer;
+            NetlifyAccessTokenBox.IsEnabled = pushToServer;
         }
 
         private async void FetchDataButton_Click(object sender, RoutedEventArgs e)
@@ -103,7 +122,7 @@ namespace StartGGgraphicGenerator
                     var sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PlayerData.html");
                     File.WriteAllText(sourceFilePath, htmlContent);
 
-                    if (PushToServerCheckBox.IsChecked == true)
+                    if (pushToServer)
                     {
                         // Define the deploy directory
                         var deployDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "deploy");
@@ -121,8 +140,7 @@ namespace StartGGgraphicGenerator
                     }
                     else
                     {
-                        Log("Opening HTML file locally.");
-                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo()
                         {
                             FileName = sourceFilePath,
                             UseShellExecute = true
@@ -166,7 +184,7 @@ namespace StartGGgraphicGenerator
                     var sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PlayerData.html");
                     File.WriteAllText(sourceFilePath, htmlContent);
 
-                    if (PushToServerCheckBox.IsChecked == true)
+                    if (pushToServer)
                     {
                         // Define the deploy directory
                         var deployDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "deploy");
@@ -184,8 +202,7 @@ namespace StartGGgraphicGenerator
                     }
                     else
                     {
-                        Log("Opening HTML file locally.");
-                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo()
                         {
                             FileName = sourceFilePath,
                             UseShellExecute = true
@@ -567,23 +584,6 @@ namespace StartGGgraphicGenerator
                     Log($"Image dropped: {droppedImagePath}");
                 }
             }
-        }
-
-        private void PushToServerCheckBox_Checked(object sender, RoutedEventArgs e)
-        {
-            UpdateNetlifyControlsState();
-        }
-
-        private void PushToServerCheckBox_Unchecked(object sender, RoutedEventArgs e)
-        {
-            UpdateNetlifyControlsState();
-        }
-
-        private void UpdateNetlifyControlsState()
-        {
-            bool isEnabled = PushToServerCheckBox.IsChecked == true;
-            NetlifySiteIdTextBox.IsEnabled = isEnabled;
-            NetlifyAccessTokenBox.IsEnabled = isEnabled;
         }
     }
 
