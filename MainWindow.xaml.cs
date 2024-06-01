@@ -348,17 +348,13 @@ namespace StartGGgraphicGenerator
                     query = @"
                     {
                         league(slug: """ + slug + @""") {
-                            events {
-                                id
-                                name
-                                standings(query: {perPage: 100, page: 1}) {
-                                    nodes {
-                                        entrant {
-                                            id
-                                            name
-                                        }
-                                        placement
+                            standings(query: {perPage: 100, page: 1}) {
+                                nodes {
+                                    entrant {
+                                        id
+                                        name
                                     }
+                                    placement
                                 }
                             }
                         }
@@ -376,23 +372,19 @@ namespace StartGGgraphicGenerator
 
                 players.Clear();
 
-                if (graphQLResponse?.Data?.League?.Events != null)
+                Log($"GraphQL response: {result}");
+
+                if (graphQLResponse?.Data?.League?.Standings?.Nodes != null)
                 {
-                    foreach (var evt in graphQLResponse.Data.League.Events)
+                    foreach (var node in graphQLResponse.Data.League.Standings.Nodes)
                     {
-                        if (evt.Standings?.Nodes != null)
+                        players.Add(new Player
                         {
-                            foreach (var node in evt.Standings.Nodes)
-                            {
-                                players.Add(new Player
-                                {
-                                    Name = node.Entrant.Name,
-                                    Placement = node.Placement
-                                });
-                            }
-                        }
+                            Name = node.Entrant.Name,
+                            Placement = node.Placement
+                        });
                     }
-                    Log($"Fetched standings from {graphQLResponse.Data.League.Events.Count} events.");
+                    Log($"Fetched standings from {graphQLResponse.Data.League.Standings.Nodes.Count} nodes.");
                 }
                 else
                 {
@@ -503,6 +495,14 @@ namespace StartGGgraphicGenerator
             }
         }
 
+        private void Log(string message)
+        {
+            string logMessage = $"{DateTime.Now}: {message}{Environment.NewLine}";
+            LogTextBox.AppendText(logMessage);
+            LogTextBox.ScrollToEnd();
+            File.AppendAllText(logFilePath, logMessage);
+        }
+
         private void Window_DragOver(object sender, DragEventArgs e)
         {
             e.Effects = DragDropEffects.Copy;
@@ -511,23 +511,17 @@ namespace StartGGgraphicGenerator
 
         private void Window_Drop(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            if (e.Data != null && e.Data.GetDataPresent(DataFormats.FileDrop))
             {
-                var files = (string[])e.Data.GetData(DataFormats.FileDrop);
-                if (files != null && files.Length > 0)
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                if (files.Length > 0)
                 {
-                    droppedImagePath = files[0];
-                    DroppedImage.Source = new BitmapImage(new Uri(droppedImagePath));
+                    string filePath = files[0];
+                    droppedImagePath = filePath;
+                    DroppedImage.Source = new BitmapImage(new Uri(filePath));
+                    Log($"Image dropped: {filePath}");
                 }
             }
-        }
-
-        private void Log(string message)
-        {
-            string logMessage = $"{DateTime.Now}: {message}{Environment.NewLine}";
-            LogTextBox.AppendText(logMessage);
-            LogTextBox.ScrollToEnd();
-            File.AppendAllText(logFilePath, logMessage);
         }
     }
 
@@ -564,6 +558,7 @@ namespace StartGGgraphicGenerator
     public class League
     {
         public List<Event> Events { get; set; }
+        public Standings Standings { get; set; }
     }
 
     public class Standings
