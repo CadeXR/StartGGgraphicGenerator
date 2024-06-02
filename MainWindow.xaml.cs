@@ -10,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using Newtonsoft.Json;
 using System.Windows.Media.Imaging;
+using System.Numerics;
 
 namespace StartGGgraphicGenerator
 {
@@ -25,31 +26,11 @@ namespace StartGGgraphicGenerator
         private string netlifyAccessToken;
         private static string logFilePath = "log.txt";
         private string droppedImagePath;
-        private bool pushToServer = false;
 
         public MainWindow()
         {
             InitializeComponent();
             LoadSettings();
-            UpdateNetlifyFields();
-        }
-
-        private void PushToServerCheckBox_Checked(object sender, RoutedEventArgs e)
-        {
-            pushToServer = true;
-            UpdateNetlifyFields();
-        }
-
-        private void PushToServerCheckBox_Unchecked(object sender, RoutedEventArgs e)
-        {
-            pushToServer = false;
-            UpdateNetlifyFields();
-        }
-
-        private void UpdateNetlifyFields()
-        {
-            NetlifySiteIdTextBox.IsEnabled = pushToServer;
-            NetlifyAccessTokenBox.IsEnabled = pushToServer;
         }
 
         private async void FetchDataButton_Click(object sender, RoutedEventArgs e)
@@ -57,7 +38,8 @@ namespace StartGGgraphicGenerator
             apiToken = ApiKeyTextBox.Text;
             string url = UrlTextBox.Text;
             string slug = ExtractSlugFromUrl(url);
-            bool isLeague = url.Contains("/league/");
+            string linkType = (LinkTypeComboBox.SelectedItem as ComboBoxItem)?.Content.ToString();
+            bool isLeague = linkType == "League";
 
             if (!string.IsNullOrEmpty(slug))
             {
@@ -122,7 +104,7 @@ namespace StartGGgraphicGenerator
                     var sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PlayerData.html");
                     File.WriteAllText(sourceFilePath, htmlContent);
 
-                    if (pushToServer)
+                    if (PushToServerCheckBox.IsChecked == true)
                     {
                         // Define the deploy directory
                         var deployDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "deploy");
@@ -140,7 +122,8 @@ namespace StartGGgraphicGenerator
                     }
                     else
                     {
-                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo()
+                        // Open HTML file in the default browser
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                         {
                             FileName = sourceFilePath,
                             UseShellExecute = true
@@ -160,7 +143,8 @@ namespace StartGGgraphicGenerator
             apiToken = ApiKeyTextBox.Text;
             string url = UrlTextBox.Text;
             string slug = ExtractSlugFromUrl(url);
-            bool isLeague = url.Contains("/league/");
+            string linkType = (LinkTypeComboBox.SelectedItem as ComboBoxItem)?.Content.ToString();
+            bool isLeague = linkType == "League";
 
             if (!string.IsNullOrEmpty(slug))
             {
@@ -184,7 +168,7 @@ namespace StartGGgraphicGenerator
                     var sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PlayerData.html");
                     File.WriteAllText(sourceFilePath, htmlContent);
 
-                    if (pushToServer)
+                    if (PushToServerCheckBox.IsChecked == true)
                     {
                         // Define the deploy directory
                         var deployDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "deploy");
@@ -202,7 +186,8 @@ namespace StartGGgraphicGenerator
                     }
                     else
                     {
-                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo()
+                        // Open HTML file in the default browser
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                         {
                             FileName = sourceFilePath,
                             UseShellExecute = true
@@ -315,7 +300,6 @@ namespace StartGGgraphicGenerator
                 }
             }
         }
-
         private async Task FetchStandingsFromTournament(string slug)
         {
             using (var client = new HttpClient())
@@ -325,23 +309,24 @@ namespace StartGGgraphicGenerator
                 var query = new
                 {
                     query = @"
-                    {
-                        tournament(slug: """ + slug + @""") {
-                            events {
-                                id
-                                name
-                                standings(query: {perPage: 100, page: 1}) {
-                                    nodes {
-                                        entrant {
-                                            id
-                                            name
-                                        }
-                                        placement
-                                    }
+            {
+                tournament(slug: """ + slug + @""") {
+                    events {
+                        id
+                        name
+                        standings(query: {perPage: 100, page: 1}) {
+                            nodes {
+                                entrant {
+                                    id
+                                    name
                                 }
+                                placement
+                                totalPoints
                             }
                         }
-                    }"
+                    }
+                }
+            }"
                 };
 
                 var jsonContent = JsonConvert.SerializeObject(query);
@@ -367,7 +352,8 @@ namespace StartGGgraphicGenerator
                                 players.Add(new Player
                                 {
                                     Name = node.Entrant.Name,
-                                    Placement = node.Placement
+                                    Placement = node.Placement,
+                                    Points = node.TotalPoints // Ensure to get totalPoints if available
                                 });
                             }
                         }
@@ -391,25 +377,26 @@ namespace StartGGgraphicGenerator
                 var query = new
                 {
                     query = @"
-                    {
-                        league(slug: """ + slug + @""") {
-                            events {
+            {
+                league(slug: """ + slug + @""") {
+                    events {
+                        nodes {
+                            id
+                            name
+                            standings(query: {perPage: 100, page: 1}) {
                                 nodes {
-                                    id
-                                    name
-                                    standings(query: {perPage: 100, page: 1}) {
-                                        nodes {
-                                            entrant {
-                                                id
-                                                name
-                                            }
-                                            placement
-                                        }
+                                    entrant {
+                                        id
+                                        name
                                     }
+                                    placement
+                                    totalPoints
                                 }
                             }
                         }
-                    }"
+                    }
+                }
+            }"
                 };
 
                 var jsonContent = JsonConvert.SerializeObject(query);
@@ -435,7 +422,8 @@ namespace StartGGgraphicGenerator
                                 players.Add(new Player
                                 {
                                     Name = node.Entrant.Name,
-                                    Placement = node.Placement
+                                    Placement = node.Placement,
+                                    Points = node.TotalPoints // Ensure to get totalPoints if available
                                 });
                             }
                         }
@@ -459,19 +447,20 @@ namespace StartGGgraphicGenerator
                 var query = new
                 {
                     query = @"
-                    {
-                        event(id: """ + eventId + @""") {
-                            standings(query: {perPage: 100, page: 1}) {
-                                nodes {
-                                    entrant {
-                                        id
-                                        name
-                                    }
-                                    placement
-                                }
+            {
+                event(id: """ + eventId + @""") {
+                    standings(query: {perPage: 100, page: 1}) {
+                        nodes {
+                            entrant {
+                                id
+                                name
                             }
+                            placement
+                            totalPoints
                         }
-                    }"
+                    }
+                }
+            }"
                 };
 
                 var jsonContent = JsonConvert.SerializeObject(query);
@@ -493,7 +482,8 @@ namespace StartGGgraphicGenerator
                         playerList.Add(new Player
                         {
                             Name = node.Entrant.Name,
-                            Placement = node.Placement
+                            Placement = node.Placement,
+                            Points = node.TotalPoints // Ensure to get totalPoints if available
                         });
                     }
                 }
@@ -552,6 +542,18 @@ namespace StartGGgraphicGenerator
             }
         }
 
+        private void PushToServerCheckBox_Checked(object sender, RoutedEventArgs e)
+        {
+            NetlifySiteIdTextBox.IsEnabled = true;
+            NetlifyAccessTokenBox.IsEnabled = true;
+        }
+
+        private void PushToServerCheckBox_Unchecked(object sender, RoutedEventArgs e)
+        {
+            NetlifySiteIdTextBox.IsEnabled = false;
+            NetlifyAccessTokenBox.IsEnabled = false;
+        }
+
         private void Log(string message)
         {
             string logMessage = $"{DateTime.Now}: {message}{Environment.NewLine}";
@@ -591,6 +593,7 @@ namespace StartGGgraphicGenerator
     {
         public string Name { get; set; }
         public int Placement { get; set; }
+        public float? Points { get; set; }
     }
 
     public class GraphQLResponse
@@ -636,6 +639,7 @@ namespace StartGGgraphicGenerator
     {
         public Entrant Entrant { get; set; }
         public int Placement { get; set; }
+        public float? TotalPoints { get; set; } // Ensure to use the correct field name
     }
 
     public class Entrant

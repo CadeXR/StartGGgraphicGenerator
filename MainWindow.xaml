@@ -8,7 +8,6 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="20*" />
@@ -19,7 +18,7 @@
         <!-- Header Row -->
         <StackPanel Grid.Row="0" Grid.ColumnSpan="3" Orientation="Vertical" HorizontalAlignment="Center" Margin="0,0,0,10">
             <TextBlock Text="Start.GG Graphic Generator" FontWeight="Bold" FontSize="16" Width="673"/>
-            <TextBlock Text="Version 0.1.9" Margin="0,0,0,5"/>
+            <TextBlock Text="Version 0.2.0" Margin="0,0,0,5"/>
             <TextBlock Text="Created by CadeXR" Margin="0,0,0,10"/>
         </StackPanel>
 
@@ -36,9 +35,14 @@
             </Grid.RowDefinitions>
             <TextBlock Text="Start.GG API Key:" Grid.Row="0" Margin="0,0,0,10"/>
             <TextBlock Text="Tournament/League URL:" Grid.Row="1" Margin="0,0,0,10"/>
-            <TextBlock Text="Netlify Site ID:" Grid.Row="2" Margin="0,0,0,10"/>
-            <TextBlock Text="Netlify Access Token:" Grid.Row="3" Margin="0,0,0,10"/>
-            <TextBlock Text="Select Color:" Grid.Row="4" Margin="0,0,0,10"/>
+            <ComboBox x:Name="LinkTypeComboBox" Margin="161,23,-134,3" Grid.RowSpan="2">
+                <ComboBoxItem Content="Tournament"/>
+                <ComboBoxItem Content="League"/>
+            </ComboBox>
+            <TextBlock Text="Netlify Site ID:" Grid.Row="3" Margin="0,0,0,10"/>
+            <TextBlock Text="Netlify Access Token:" Grid.Row="4" Margin="0,0,0,10"/>
+            <TextBlock Text="Select Color:" Grid.Row="5" Margin="0,0,0,10"/>
+            <CheckBox x:Name="PushToServerCheckBox" Content="Push to Server" Grid.Row="6" Margin="0,0,0,10" Checked="PushToServerCheckBox_Checked" Unchecked="PushToServerCheckBox_Unchecked"/>
         </Grid>
 
         <!-- Center Column -->
@@ -55,28 +59,29 @@
             </Grid.RowDefinitions>
             <TextBox x:Name="ApiKeyTextBox" Grid.Row="0" Width="200" Margin="10,0,0,10"/>
             <TextBox x:Name="UrlTextBox" Grid.Row="1" Width="200" Margin="10,0,0,10"/>
-            <TextBox x:Name="NetlifySiteIdTextBox" Grid.Row="2" Width="200" Margin="10,0,0,10"/>
-            <PasswordBox x:Name="NetlifyAccessTokenBox" Grid.Row="3" Width="200" Margin="10,0,0,10" PasswordChanged="NetlifyAccessTokenBox_PasswordChanged"/>
-            <wpftoolkit:ColorPicker x:Name="ColorPicker" Grid.Row="4" Width="150" Height="25" Margin="10,0,0,10" SelectedColorChanged="ColorPicker_SelectedColorChanged"/>
-            <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,10">
+            <TextBox x:Name="NetlifySiteIdTextBox" Grid.Row="3" Width="200" Margin="10,0,0,10" IsEnabled="False"/>
+            <PasswordBox x:Name="NetlifyAccessTokenBox" Grid.Row="4" Width="200" Margin="10,0,0,10" PasswordChanged="NetlifyAccessTokenBox_PasswordChanged" IsEnabled="False"/>
+            <wpftoolkit:ColorPicker x:Name="ColorPicker" Grid.Row="5" Width="150" Height="25" Margin="10,0,0,10" SelectedColorChanged="ColorPicker_SelectedColorChanged"/>
+            <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,10">
                 <Button x:Name="FetchDataButton" Content="Fetch Events" Width="150" Height="30" Margin="0,0,10,0" Click="FetchDataButton_Click"/>
                 <Button x:Name="SaveButton" Content="Save Settings" Width="150" Height="30" Margin="0,0,10,0" Click="SaveButton_Click"/>
                 <Button x:Name="FetchStandingsButton" Content="Fetch Standings" Width="150" Height="30" Margin="0,0,10,0" Click="FetchStandingsButton_Click"/>
             </StackPanel>
-            <CheckBox x:Name="PushToServerCheckBox" Grid.Row="6" Content="Push to Server" Margin="10" Checked="PushToServerCheckBox_Checked" Unchecked="PushToServerCheckBox_Unchecked"/>
-            <StackPanel Grid.Row="7" Orientation="Horizontal">
-                <Image x:Name="DroppedImage" Width="100" Height="100" HorizontalAlignment="Left" Margin="10"/>
-                <TextBlock Text="Drop Image" VerticalAlignment="Center" Margin="10,0,0,0"/>
-            </StackPanel>
-            <ScrollViewer Grid.Row="8" VerticalScrollBarVisibility="Auto">
+            <TextBlock Text="Drop Image" Grid.Row="7" Margin="64,85,-60,110"/>
+            <Image x:Name="DroppedImage" Grid.Row="7" Width="200" Height="200" HorizontalAlignment="Left" Margin="8,10,0,10" />
+            <ScrollViewer Grid.Row="7" VerticalScrollBarVisibility="Auto" Margin="221,10,0,10">
                 <StackPanel x:Name="EventsStackPanel" Margin="10"/>
             </ScrollViewer>
         </Grid>
 
-        <!-- Log Section -->
-        <Grid Grid.Row="2" Grid.ColumnSpan="3">
-            <TextBlock Text="Log:" Margin="10,0,0,0"/>
-            <TextBox x:Name="LogTextBox" Margin="10,0,10,10" Height="60" IsReadOnly="True" VerticalScrollBarVisibility="Auto"/>
+        <!-- Right Column -->
+        <Grid Grid.Row="1" Margin="0,404,0,0" HorizontalAlignment="Right" Width="770" Grid.ColumnSpan="3">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <TextBlock Text="Log:" Grid.Row="0" Margin="10,-10,0,61" Grid.RowSpan="2"/>
+            <TextBox x:Name="LogTextBox" Margin="10,10,10,0" IsReadOnly="True" VerticalScrollBarVisibility="Auto" Grid.RowSpan="2"/>
         </Grid>
     </Grid>
 </Window>
