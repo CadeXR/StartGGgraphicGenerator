@@ -8,7 +8,7 @@ namespace StartGGgraphicGenerator
     {
         private static readonly string logFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "application.log");
 
-        public static void Deploy(string sourceFilePath, string deployDirectory, string siteId)
+        public static void Deploy(string deployDirectory, string siteId, string accessToken)
         {
             try
             {
@@ -27,20 +27,6 @@ namespace StartGGgraphicGenerator
                     throw new Exception("Netlify CLI not found. Please install it from https://docs.netlify.com/cli/get-started/");
                 }
                 Log($"Netlify CLI found at: {netlifyCliPath}");
-
-                // Create the deploy directory if it doesn't exist
-                if (!Directory.Exists(deployDirectory))
-                {
-                    Directory.CreateDirectory(deployDirectory);
-                }
-
-                Log($"Deploy directory created at: {deployDirectory}");
-
-                // Copy and rename the HTML file to index.html in the deploy directory
-                string destinationFilePath = Path.Combine(deployDirectory, "index.html");
-                File.Copy(sourceFilePath, destinationFilePath, true);
-
-                Log($"File copied to: {destinationFilePath}");
 
                 // Include the Node.js directory in the PATH environment variable
                 string nodeDirectory = Path.GetDirectoryName(nodePath);

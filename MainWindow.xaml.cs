@@ -10,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using Newtonsoft.Json;
 using System.Windows.Media.Imaging;
+using System.Diagnostics;
 using System.Numerics;
 
 namespace StartGGgraphicGenerator
@@ -20,7 +21,7 @@ namespace StartGGgraphicGenerator
         private static string apiToken = "";
         private static List<Player> players = new List<Player>();
         private static List<Event> events = new List<Event>();
-        private System.Windows.Media.Color selectedColor = System.Windows.Media.Colors.Blue;
+        private Color selectedColor = Colors.Blue;
         private string selectedFont = "Arial";
         private string netlifySiteId;
         private string netlifyAccessToken;
@@ -106,13 +107,22 @@ namespace StartGGgraphicGenerator
 
                     if (PushToServerCheckBox.IsChecked == true)
                     {
-                        // Define the deploy directory
+                        // Ensure the deploy directory is clean
                         var deployDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "deploy");
+                        if (Directory.Exists(deployDirectory))
+                        {
+                            Directory.Delete(deployDirectory, true);
+                        }
+                        Directory.CreateDirectory(deployDirectory);
+
+                        // Copy the HTML file to the deploy directory and rename it to index.html
+                        var destinationFilePath = Path.Combine(deployDirectory, "index.html");
+                        File.Copy(sourceFilePath, destinationFilePath, true);
 
                         Log("Deploying HTML file to Netlify...");
                         try
                         {
-                            NetlifyDeployer.Deploy(sourceFilePath, deployDirectory, netlifySiteId);
+                            NetlifyDeployer.Deploy(deployDirectory, netlifySiteId, netlifyAccessToken);
                             Log("HTML file deployed successfully.");
                         }
                         catch (Exception ex)
@@ -170,13 +180,22 @@ namespace StartGGgraphicGenerator
 
                     if (PushToServerCheckBox.IsChecked == true)
                     {
-                        // Define the deploy directory
+                        // Ensure the deploy directory is clean
                         var deployDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "deploy");
+                        if (Directory.Exists(deployDirectory))
+                        {
+                            Directory.Delete(deployDirectory, true);
+                        }
+                        Directory.CreateDirectory(deployDirectory);
+
+                        // Copy the HTML file to the deploy directory and rename it to index.html
+                        var destinationFilePath = Path.Combine(deployDirectory, "index.html");
+                        File.Copy(sourceFilePath, destinationFilePath, true);
 
                         Log("Deploying HTML file to Netlify...");
                         try
                         {
-                            NetlifyDeployer.Deploy(sourceFilePath, deployDirectory, netlifySiteId);
+                            NetlifyDeployer.Deploy(deployDirectory, netlifySiteId, netlifyAccessToken);
                             Log("HTML file deployed successfully.");
                         }
                         catch (Exception ex)
@@ -300,6 +319,7 @@ namespace StartGGgraphicGenerator
                 }
             }
         }
+
         private async Task FetchStandingsFromTournament(string slug)
         {
             using (var client = new HttpClient())
@@ -309,24 +329,24 @@ namespace StartGGgraphicGenerator
                 var query = new
                 {
                     query = @"
-            {
-                tournament(slug: """ + slug + @""") {
-                    events {
-                        id
-                        name
-                        standings(query: {perPage: 100, page: 1}) {
-                            nodes {
-                                entrant {
-                                    id
-                                    name
+                    {
+                        tournament(slug: """ + slug + @""") {
+                            events {
+                                id
+                                name
+                                standings(query: {perPage: 100, page: 1}) {
+                                    nodes {
+                                        entrant {
+                                            id
+                                            name
+                                        }
+                                        placement
+                                        totalPoints
+                                    }
                                 }
-                                placement
-                                totalPoints
                             }
                         }
-                    }
-                }
-            }"
+                    }"
                 };
 
                 var jsonContent = JsonConvert.SerializeObject(query);
@@ -377,26 +397,20 @@ namespace StartGGgraphicGenerator
                 var query = new
                 {
                     query = @"
-            {
-                league(slug: """ + slug + @""") {
-                    events {
-                        nodes {
-                            id
-                            name
+                    {
+                        league(slug: """ + slug + @""") {
                             standings(query: {perPage: 100, page: 1}) {
                                 nodes {
-                                    entrant {
-                                        id
-                                        name
+                                    player {
+                                        prefix
+                                        gamerTag
                                     }
                                     placement
                                     totalPoints
                                 }
                             }
                         }
-                    }
-                }
-            }"
+                    }"
                 };
 
                 var jsonContent = JsonConvert.SerializeObject(query);
@@ -411,24 +425,18 @@ namespace StartGGgraphicGenerator
 
                 players.Clear();
 
-                if (graphQLResponse?.Data?.League?.Events?.Nodes != null)
+                if (graphQLResponse?.Data?.League?.Standings?.Nodes != null)
                 {
-                    foreach (var evt in graphQLResponse.Data.League.Events.Nodes)
+                    foreach (var node in graphQLResponse.Data.League.Standings.Nodes)
                     {
-                        if (evt.Standings?.Nodes != null)
+                        players.Add(new Player
                         {
-                            foreach (var node in evt.Standings.Nodes)
-                            {
-                                players.Add(new Player
-                                {
-                                    Name = node.Entrant.Name,
-                                    Placement = node.Placement,
-                                    Points = node.TotalPoints // Ensure to get totalPoints if available
-                                });
-                            }
-                        }
+                            Name = node.Player.Prefix + " " + node.Player.GamerTag,
+                            Placement = node.Placement,
+                            Points = node.TotalPoints // Ensure to get totalPoints if available
+                        });
                     }
-                    Log($"Fetched standings from {graphQLResponse.Data.League.Events.Nodes.Count} events.");
+                    Log($"Fetched standings from {graphQLResponse.Data.League.Standings.Nodes.Count} players.");
                 }
                 else
                 {
@@ -447,20 +455,20 @@ namespace StartGGgraphicGenerator
                 var query = new
                 {
                     query = @"
-            {
-                event(id: """ + eventId + @""") {
-                    standings(query: {perPage: 100, page: 1}) {
-                        nodes {
-                            entrant {
-                                id
-                                name
+                    {
+                        event(id: """ + eventId + @""") {
+                            standings(query: {perPage: 100, page: 1}) {
+                                nodes {
+                                    entrant {
+                                        id
+                                        name
+                                    }
+                                    placement
+                                    totalPoints
+                                }
                             }
-                            placement
-                            totalPoints
                         }
-                    }
-                }
-            }"
+                    }"
                 };
 
                 var jsonContent = JsonConvert.SerializeObject(query);
@@ -622,7 +630,8 @@ namespace StartGGgraphicGenerator
 
     public class League
     {
-        public EventConnection Events { get; set; }
+        public EventConnection Events { get; set; } // Ensure this is added
+        public Standings Standings { get; set; }
     }
 
     public class EventConnection
@@ -639,11 +648,18 @@ namespace StartGGgraphicGenerator
     {
         public Entrant Entrant { get; set; }
         public int Placement { get; set; }
-        public float? TotalPoints { get; set; } // Ensure to use the correct field name
+        public float? TotalPoints { get; set; }
+        public PlayerDetails Player { get; set; }
     }
 
     public class Entrant
     {
         public string Name { get; set; }
+    }
+
+    public class PlayerDetails
+    {
+        public string Prefix { get; set; }
+        public string GamerTag { get; set; }
     }
 }
