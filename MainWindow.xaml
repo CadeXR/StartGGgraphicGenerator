@@ -19,7 +19,7 @@
         <StackPanel Grid.Row="0" Grid.ColumnSpan="3" Orientation="Vertical" HorizontalAlignment="Center" Margin="0,0,0,10">
             <TextBlock Text="Start.GG Graphic Generator" FontWeight="Bold" FontSize="16" Width="673"/>
             <TextBlock Text="Version 0.3.2 - July Update" Margin="0,0,0,5"/>
-            <TextBlock Text="Created by CadeXR" Margin="0,0,0,10"/>
+            <TextBlock Text="Created by CadeXR (x.com/Cade_XR)" Margin="0,0,0,10"/>
         </StackPanel>
 
         <!-- Left Column -->
