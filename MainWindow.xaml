@@ -4,7 +4,7 @@
         xmlns:wpftoolkit="http://schemas.xceed.com/wpf/xaml/toolkit"
         Title="StartGG Graphic Generator" Height="600" Width="800"
         AllowDrop="True" DragOver="Window_DragOver" Drop="Window_Drop">
-    <Grid Margin="10">
+    <Grid x:Name="MainGrid" Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -18,7 +18,7 @@
         <!-- Header Row -->
         <StackPanel Grid.Row="0" Grid.ColumnSpan="3" Orientation="Vertical" HorizontalAlignment="Center" Margin="0,0,0,10">
             <TextBlock Text="Start.GG Graphic Generator" FontWeight="Bold" FontSize="16" Width="673"/>
-            <TextBlock Text="Version 0.2.0" Margin="0,0,0,5"/>
+            <TextBlock Text="Version 0.3.2 - July Update" Margin="0,0,0,5"/>
             <TextBlock Text="Created by CadeXR" Margin="0,0,0,10"/>
         </StackPanel>
 
@@ -32,6 +32,8 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <!-- New row for Server Mode CheckBox -->
             </Grid.RowDefinitions>
             <TextBlock Text="Start.GG API Key:" Grid.Row="0" Margin="0,0,0,10"/>
             <TextBlock Text="Tournament/League URL:" Grid.Row="1" Margin="0,0,0,10"/>
@@ -43,6 +45,7 @@
             <TextBlock Text="Netlify Access Token:" Grid.Row="4" Margin="0,0,0,10"/>
             <TextBlock Text="Select Color:" Grid.Row="5" Margin="0,0,0,10"/>
             <CheckBox x:Name="PushToServerCheckBox" Content="Push to Server" Grid.Row="6" Margin="0,0,0,10" Checked="PushToServerCheckBox_Checked" Unchecked="PushToServerCheckBox_Unchecked"/>
+            <CheckBox x:Name="ServerModeCheckBox" Content="Server Mode" Grid.Row="7" Margin="0,0,0,10" Checked="ServerModeCheckBox_Checked" Unchecked="ServerModeCheckBox_Unchecked"/>
         </Grid>
 
         <!-- Center Column -->
@@ -83,5 +86,12 @@
             <TextBlock Text="Log:" Grid.Row="0" Margin="10,-10,0,61" Grid.RowSpan="2"/>
             <TextBox x:Name="LogTextBox" Margin="10,10,10,0" IsReadOnly="True" VerticalScrollBarVisibility="Auto" Grid.RowSpan="2"/>
         </Grid>
+
+        <!-- Overlay -->
+        <Canvas x:Name="ServerModeOverlay" Visibility="Collapsed" Background="Transparent">
+            <Rectangle Fill="Black" Opacity="0.5" Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Window}}"/>
+            <TextBlock Text="The Graphic Generator is now running in server mode. No settings can be edited while server mode is running. To exit server mode and edit any settings, please restart the application. This will disable server mode until it is triggered again."
+                       Foreground="White" FontSize="16" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" HorizontalAlignment="Center" Width="600"/>
+        </Canvas>
     </Grid>
 </Window>

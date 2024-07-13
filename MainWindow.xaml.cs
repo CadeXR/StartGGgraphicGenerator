@@ -12,6 +12,7 @@ using Newtonsoft.Json;
 using System.Windows.Media.Imaging;
 using System.Diagnostics;
 using System.Numerics;
+using System.Windows.Threading;
 
 namespace StartGGgraphicGenerator
 {
@@ -27,15 +28,60 @@ namespace StartGGgraphicGenerator
         private string netlifyAccessToken;
         private static string logFilePath = "log.txt";
         private string droppedImagePath;
+        private DispatcherTimer serverModeTimer;
+        private bool isServerModePrimed = false;
+        private bool isServerModeActive = false;
 
         public MainWindow()
         {
             InitializeComponent();
             LoadSettings();
+            InitializeServerMode();
+        }
+
+        private void InitializeServerMode()
+        {
+            serverModeTimer = new DispatcherTimer();
+            serverModeTimer.Interval = TimeSpan.FromSeconds(30);
+            serverModeTimer.Tick += ServerModeTimer_Tick;
+        }
+
+        private void ServerModeTimer_Tick(object sender, EventArgs e)
+        {
+            Log("Server Mode: Generating and pushing graphic...");
+            FetchStandingsButton_Click(null, null);
+        }
+
+        private void ServerModeCheckBox_Checked(object sender, RoutedEventArgs e)
+        {
+            isServerModePrimed = true;
+        }
+
+        private void ServerModeCheckBox_Unchecked(object sender, RoutedEventArgs e)
+        {
+            isServerModePrimed = false;
+            isServerModeActive = false;
+            serverModeTimer.Stop();
+            HideServerModeOverlay();
+        }
+
+        private void ShowServerModeOverlay()
+        {
+            ServerModeOverlay.Visibility = Visibility.Visible;
+        }
+
+        private void HideServerModeOverlay()
+        {
+            ServerModeOverlay.Visibility = Visibility.Collapsed;
         }
 
         private async void FetchDataButton_Click(object sender, RoutedEventArgs e)
         {
+            if (isServerModePrimed && isServerModeActive)
+            {
+                return;
+            }
+
             apiToken = ApiKeyTextBox.Text;
             string url = UrlTextBox.Text;
             string slug = ExtractSlugFromUrl(url);
@@ -90,6 +136,11 @@ namespace StartGGgraphicGenerator
 
         private async void EventButton_Click(object sender, RoutedEventArgs e)
         {
+            if (isServerModePrimed && isServerModeActive)
+            {
+                return;
+            }
+
             var button = sender as Button;
             if (button != null)
             {
@@ -101,13 +152,11 @@ namespace StartGGgraphicGenerator
                     Log("Generating HTML file...");
                     var htmlContent = HTMLGenerator.GenerateHtmlContent(players, selectedFont, selectedColor, droppedImagePath);
 
-                    // Save HTML file locally
                     var sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PlayerData.html");
                     File.WriteAllText(sourceFilePath, htmlContent);
 
                     if (PushToServerCheckBox.IsChecked == true)
                     {
-                        // Ensure the deploy directory is clean
                         var deployDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "deploy");
                         if (Directory.Exists(deployDirectory))
                         {
@@ -115,7 +164,6 @@ namespace StartGGgraphicGenerator
                         }
                         Directory.CreateDirectory(deployDirectory);
 
-                        // Copy the HTML file to the deploy directory and rename it to index.html
                         var destinationFilePath = Path.Combine(deployDirectory, "index.html");
                         File.Copy(sourceFilePath, destinationFilePath, true);
 
@@ -132,7 +180,6 @@ namespace StartGGgraphicGenerator
                     }
                     else
                     {
-                        // Open HTML file in the default browser
                         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                         {
                             FileName = sourceFilePath,
@@ -150,6 +197,13 @@ namespace StartGGgraphicGenerator
 
         private async void FetchStandingsButton_Click(object sender, RoutedEventArgs e)
         {
+            if (isServerModePrimed)
+            {
+                isServerModeActive = true;
+                ShowServerModeOverlay();
+                serverModeTimer.Start();
+            }
+
             apiToken = ApiKeyTextBox.Text;
             string url = UrlTextBox.Text;
             string slug = ExtractSlugFromUrl(url);
@@ -174,13 +228,11 @@ namespace StartGGgraphicGenerator
                     Log("Generating HTML file...");
                     var htmlContent = HTMLGenerator.GenerateHtmlContent(players, selectedFont, selectedColor, droppedImagePath);
 
-                    // Save HTML file locally
                     var sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PlayerData.html");
                     File.WriteAllText(sourceFilePath, htmlContent);
 
                     if (PushToServerCheckBox.IsChecked == true)
                     {
-                        // Ensure the deploy directory is clean
                         var deployDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "deploy");
                         if (Directory.Exists(deployDirectory))
                         {
@@ -188,7 +240,6 @@ namespace StartGGgraphicGenerator
                         }
                         Directory.CreateDirectory(deployDirectory);
 
-                        // Copy the HTML file to the deploy directory and rename it to index.html
                         var destinationFilePath = Path.Combine(deployDirectory, "index.html");
                         File.Copy(sourceFilePath, destinationFilePath, true);
 
@@ -205,7 +256,6 @@ namespace StartGGgraphicGenerator
                     }
                     else
                     {
-                        // Open HTML file in the default browser
                         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                         {
                             FileName = sourceFilePath,
@@ -373,7 +423,7 @@ namespace StartGGgraphicGenerator
                                 {
                                     Name = node.Entrant.Name,
                                     Placement = node.Placement,
-                                    Points = node.TotalPoints // Ensure to get totalPoints if available
+                                    Points = node.TotalPoints
                                 });
                             }
                         }
@@ -433,7 +483,7 @@ namespace StartGGgraphicGenerator
                         {
                             Name = node.Player.Prefix + " " + node.Player.GamerTag,
                             Placement = node.Placement,
-                            Points = node.TotalPoints // Ensure to get totalPoints if available
+                            Points = node.TotalPoints
                         });
                     }
                     Log($"Fetched standings from {graphQLResponse.Data.League.Standings.Nodes.Count} players.");
@@ -491,7 +541,7 @@ namespace StartGGgraphicGenerator
                         {
                             Name = node.Entrant.Name,
                             Placement = node.Placement,
-                            Points = node.TotalPoints // Ensure to get totalPoints if available
+                            Points = node.TotalPoints
                         });
                     }
                 }
@@ -512,7 +562,6 @@ namespace StartGGgraphicGenerator
                     NetlifySiteIdTextBox.Text = lines[2];
                     NetlifyAccessTokenBox.Password = lines[3];
 
-                    // Load the selected tournament/league type
                     if (lines[4] == "Tournament")
                     {
                         LinkTypeComboBox.SelectedIndex = 0;
@@ -522,13 +571,11 @@ namespace StartGGgraphicGenerator
                         LinkTypeComboBox.SelectedIndex = 1;
                     }
 
-                    // Load the selected color
                     if (ColorConverter.ConvertFromString(lines[5]) is Color color)
                     {
                         ColorPicker.SelectedColor = color;
                     }
 
-                    // Load the dropped image path
                     if (File.Exists(lines[6]))
                     {
                         droppedImagePath = lines[6];
@@ -538,26 +585,28 @@ namespace StartGGgraphicGenerator
             }
         }
 
-
         private void SaveSettings()
         {
             var lines = new string[]
             {
-        ApiKeyTextBox.Text,
-        UrlTextBox.Text,
-        NetlifySiteIdTextBox.Text,
-        NetlifyAccessTokenBox.Password,
-        (LinkTypeComboBox.SelectedItem as ComboBoxItem)?.Content.ToString(),
-        ColorPicker.SelectedColor.HasValue ? ColorPicker.SelectedColor.Value.ToString() : string.Empty,
-        droppedImagePath ?? string.Empty
+                ApiKeyTextBox.Text,
+                UrlTextBox.Text,
+                NetlifySiteIdTextBox.Text,
+                NetlifyAccessTokenBox.Password,
+                (LinkTypeComboBox.SelectedItem as ComboBoxItem)?.Content.ToString(),
+                ColorPicker.SelectedColor.HasValue ? ColorPicker.SelectedColor.Value.ToString() : string.Empty,
+                droppedImagePath ?? string.Empty
             };
             File.WriteAllLines("settings.txt", lines);
             Log("Settings saved.");
         }
 
-
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
+            if (isServerModePrimed && isServerModeActive)
+            {
+                return;
+            }
             SaveSettings();
         }
 
@@ -658,7 +707,7 @@ namespace StartGGgraphicGenerator
 
     public class League
     {
-        public EventConnection Events { get; set; } // Ensure this is added
+        public EventConnection Events { get; set; }
         public Standings Standings { get; set; }
     }
 
