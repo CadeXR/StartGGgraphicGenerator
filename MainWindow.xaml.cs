@@ -505,28 +505,56 @@ namespace StartGGgraphicGenerator
             if (File.Exists("settings.txt"))
             {
                 var lines = File.ReadAllLines("settings.txt");
-                if (lines.Length >= 4)
+                if (lines.Length >= 7)
                 {
                     ApiKeyTextBox.Text = lines[0];
                     UrlTextBox.Text = lines[1];
                     NetlifySiteIdTextBox.Text = lines[2];
                     NetlifyAccessTokenBox.Password = lines[3];
+
+                    // Load the selected tournament/league type
+                    if (lines[4] == "Tournament")
+                    {
+                        LinkTypeComboBox.SelectedIndex = 0;
+                    }
+                    else if (lines[4] == "League")
+                    {
+                        LinkTypeComboBox.SelectedIndex = 1;
+                    }
+
+                    // Load the selected color
+                    if (ColorConverter.ConvertFromString(lines[5]) is Color color)
+                    {
+                        ColorPicker.SelectedColor = color;
+                    }
+
+                    // Load the dropped image path
+                    if (File.Exists(lines[6]))
+                    {
+                        droppedImagePath = lines[6];
+                        DroppedImage.Source = new BitmapImage(new Uri(droppedImagePath));
+                    }
                 }
             }
         }
+
 
         private void SaveSettings()
         {
             var lines = new string[]
             {
-                ApiKeyTextBox.Text,
-                UrlTextBox.Text,
-                NetlifySiteIdTextBox.Text,
-                NetlifyAccessTokenBox.Password
+        ApiKeyTextBox.Text,
+        UrlTextBox.Text,
+        NetlifySiteIdTextBox.Text,
+        NetlifyAccessTokenBox.Password,
+        (LinkTypeComboBox.SelectedItem as ComboBoxItem)?.Content.ToString(),
+        ColorPicker.SelectedColor.HasValue ? ColorPicker.SelectedColor.Value.ToString() : string.Empty,
+        droppedImagePath ?? string.Empty
             };
             File.WriteAllLines("settings.txt", lines);
             Log("Settings saved.");
         }
+
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
