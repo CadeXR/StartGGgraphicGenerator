@@ -18,7 +18,7 @@
         <!-- Header Row -->
         <StackPanel Grid.Row="0" Grid.ColumnSpan="3" Orientation="Vertical" HorizontalAlignment="Center" Margin="0,0,0,10">
             <TextBlock Text="Start.GG Graphic Generator" FontWeight="Bold" FontSize="16" Width="673"/>
-            <TextBlock Text="Version 0.3.2 - July Update" Margin="0,0,0,5"/>
+            <TextBlock Text="Version 0.4.3 - August Update" Margin="0,0,0,5"/>
             <TextBlock Text="Created by CadeXR (x.com/Cade_XR)" Margin="0,0,0,10"/>
         </StackPanel>
 
@@ -33,7 +33,6 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
-                <!-- New row for Server Mode CheckBox -->
             </Grid.RowDefinitions>
             <TextBlock Text="Start.GG API Key:" Grid.Row="0" Margin="0,0,0,10"/>
             <TextBlock Text="Tournament/League URL:" Grid.Row="1" Margin="0,0,0,10"/>
@@ -93,5 +92,16 @@
             <TextBlock Text="The Graphic Generator is now running in server mode. No settings can be edited while server mode is running. To exit server mode and edit any settings, please restart the application. This will disable server mode until it is triggered again."
                        Foreground="White" FontSize="16" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" HorizontalAlignment="Center" Width="600"/>
         </Canvas>
+
+        <!-- Image in the bottom right corner using Pack URI -->
+        <Image Source="pack://application:,,,/assets/cade.png" Width="168" Height="171" 
+               HorizontalAlignment="Center" VerticalAlignment="Top" 
+               Margin="0,353,0,0" Grid.Column="2" Grid.Row="1" />
+
+        <!-- Update Button -->
+        <Button x:Name="UpdateButton" Content="Update" Width="100" Height="30" 
+                HorizontalAlignment="Center" VerticalAlignment="Top" 
+                Margin="0,369,0,0" Click="UpdateButton_Click" Grid.Row="1" />
+
     </Grid>
 </Window>
